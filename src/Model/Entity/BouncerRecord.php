@@ -120,4 +120,16 @@ class BouncerRecord extends Entity
     {
         return $this->status === 'rejected';
     }
+
+    /**
+     * Check if this is a delete proposal.
+     *
+     * @return bool
+     */
+    public function isDeleteProposal(): bool
+    {
+        $data = $this->getData();
+
+        return isset($data['_delete']) && $data['_delete'] === true;
+    }
 }

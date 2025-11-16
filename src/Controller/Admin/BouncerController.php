@@ -6,7 +6,6 @@ namespace Bouncer\Controller\Admin;
 
 use App\Controller\AppController;
 use Cake\Event\EventInterface;
-use Cake\Http\Exception\NotFoundException;
 
 /**
  * Bouncer Controller
@@ -19,6 +18,7 @@ class BouncerController extends AppController
      * Before filter callback.
      *
      * @param \Cake\Event\EventInterface $event Event
+     *
      * @return \Cake\Http\Response|null
      */
     public function beforeFilter(EventInterface $event)
@@ -73,6 +73,7 @@ class BouncerController extends AppController
      * View method - Review a specific bouncer record with diff
      *
      * @param int|null $id Bouncer Record id.
+     *
      * @return \Cake\Http\Response|null
      */
     public function view(?int $id = null)
@@ -97,6 +98,7 @@ class BouncerController extends AppController
      * Approve method
      *
      * @param int|null $id Bouncer Record id.
+     *
      * @return \Cake\Http\Response|null
      */
     public function approve(?int $id = null)
@@ -157,6 +159,7 @@ class BouncerController extends AppController
      * Reject method
      *
      * @param int|null $id Bouncer Record id.
+     *
      * @return \Cake\Http\Response|null
      */
     public function reject(?int $id = null)
@@ -191,6 +194,7 @@ class BouncerController extends AppController
      * Delete method
      *
      * @param int|null $id Bouncer Record id.
+     *
      * @return \Cake\Http\Response|null
      */
     public function delete(?int $id = null)

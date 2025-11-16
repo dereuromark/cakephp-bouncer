@@ -32,6 +32,7 @@ class BouncerRecordsTable extends Table
      * Initialize method
      *
      * @param array<string, mixed> $config The configuration for the Table.
+     *
      * @return void
      */
     public function initialize(array $config): void
@@ -49,6 +50,7 @@ class BouncerRecordsTable extends Table
      * Default validation rules.
      *
      * @param \Cake\Validation\Validator $validator Validator instance.
+     *
      * @return \Cake\Validation\Validator
      */
     public function validationDefault(Validator $validator): Validator
@@ -108,6 +110,7 @@ class BouncerRecordsTable extends Table
      * application integrity.
      *
      * @param \Cake\ORM\RulesChecker $rules The rules object to be modified.
+     *
      * @return \Cake\ORM\RulesChecker
      */
     public function buildRules(RulesChecker $rules): RulesChecker
@@ -121,6 +124,7 @@ class BouncerRecordsTable extends Table
      * @param string $source Table name
      * @param int|null $primaryKey Primary key or null for new records
      * @param int|null $userId Optional user ID filter
+     *
      * @return \Cake\ORM\Query\SelectQuery
      */
     public function findPendingForRecord(string $source, ?int $primaryKey, ?int $userId = null)
@@ -158,6 +162,7 @@ class BouncerRecordsTable extends Table
      * @param string $source Table name
      * @param int|null $primaryKey Primary key
      * @param int $excludeId Bouncer record ID to exclude
+     *
      * @return int Number of records superseded
      */
     public function supersedeOthers(string $source, ?int $primaryKey, int $excludeId): int

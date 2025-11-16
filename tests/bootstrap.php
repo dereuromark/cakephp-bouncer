@@ -33,9 +33,9 @@ Configure::write('App', [
 ]);
 
 Cache::setConfig([
-    '_cake_core_' => [
+    '_cake_translations_' => [
         'engine' => 'File',
-        'prefix' => 'cake_core_',
+        'prefix' => 'cake_translations_',
         'serialize' => true,
     ],
     '_cake_model_' => [
@@ -49,6 +49,12 @@ if (!getenv('DB_URL')) {
     putenv('DB_URL=sqlite:///:memory:');
 }
 ConnectionManager::setConfig('test', ['url' => getenv('DB_URL')]);
+ConnectionManager::alias('test', 'default');
+
+if (getenv('FIXTURE_SCHEMA_METADATA')) {
+    $loader = new SchemaLoader();
+    $loader->loadInternalFile(getenv('FIXTURE_SCHEMA_METADATA'));
+}
 
 if (file_exists(ROOT . DS . 'config' . DS . 'bootstrap.php')) {
     require ROOT . DS . 'config' . DS . 'bootstrap.php';

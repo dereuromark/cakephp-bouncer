@@ -18,6 +18,7 @@ class Plugin extends BasePlugin
      * Load all the plugin configuration and bootstrap logic.
      *
      * @param \Cake\Core\PluginApplicationInterface $app The host application
+     *
      * @return void
      */
     public function bootstrap(PluginApplicationInterface $app): void
@@ -29,6 +30,7 @@ class Plugin extends BasePlugin
      * Add routes for the plugin.
      *
      * @param \Cake\Routing\RouteBuilder $routes The route builder to update.
+     *
      * @return void
      */
     public function routes(RouteBuilder $routes): void
@@ -49,6 +51,7 @@ class Plugin extends BasePlugin
      * Add middleware for the plugin.
      *
      * @param \Cake\Http\MiddlewareQueue $middlewareQueue The middleware queue to update.
+     *
      * @return \Cake\Http\MiddlewareQueue
      */
     public function middleware(MiddlewareQueue $middlewareQueue): MiddlewareQueue

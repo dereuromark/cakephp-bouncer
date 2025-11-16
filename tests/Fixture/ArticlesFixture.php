@@ -12,6 +12,30 @@ use Cake\TestSuite\Fixture\TestFixture;
 class ArticlesFixture extends TestFixture
 {
     /**
+     * Fields
+     *
+     * @var array<string, mixed>
+     */
+    public array $fields = [
+        'id' => ['type' => 'integer', 'length' => 10, 'unsigned' => true, 'null' => false, 'default' => null, 'autoIncrement' => true],
+        'title' => ['type' => 'string', 'length' => 255, 'null' => false, 'default' => null],
+        'body' => ['type' => 'text', 'null' => true, 'default' => null],
+        'user_id' => ['type' => 'integer', 'length' => 10, 'unsigned' => true, 'null' => false, 'default' => null],
+        'created' => ['type' => 'datetime', 'length' => null, 'null' => true, 'default' => null],
+        'modified' => ['type' => 'datetime', 'length' => null, 'null' => true, 'default' => null],
+        '_constraints' => [
+            'primary' => ['type' => 'primary', 'columns' => ['id']],
+        ],
+    ];
+
+    /**
+     * Records
+     *
+     * @var list<array>
+     */
+    public array $records = [];
+
+    /**
      * Init method
      *
      * @return void
@@ -20,34 +44,5 @@ class ArticlesFixture extends TestFixture
     {
         $this->records = [];
         parent::init();
-    }
-
-    /**
-     * Create table SQL
-     *
-     * @return string
-     */
-    public function createSql(): string
-    {
-        return <<<SQL
-CREATE TABLE IF NOT EXISTS articles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title VARCHAR(255) NOT NULL,
-    body TEXT,
-    user_id INTEGER NOT NULL,
-    created DATETIME,
-    modified DATETIME
-);
-SQL;
-    }
-
-    /**
-     * Drop table SQL
-     *
-     * @return string
-     */
-    public function dropSql(): string
-    {
-        return 'DROP TABLE IF EXISTS articles;';
     }
 }
