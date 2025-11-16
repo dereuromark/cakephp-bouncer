@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  testsuite:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.3']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, intl, pdo_sqlite
+        coverage: pcov
+
+    - name: Composer install
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Run PHPUnit
+      run: |
+        vendor/bin/phpunit --stderr
+
+  coding-standard:
+    name: Coding Standard
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, intl
+        coverage: none
+
+    - name: Composer install
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Run PHP CodeSniffer
+      run: composer cs-check
+
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, intl
+        coverage: none
+
+    - name: Composer install
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Install PHPStan
+      run: composer stan-setup
+
+    - name: Run PHPStan
+      run: composer stan

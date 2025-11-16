@@ -1,0 +1,27 @@
+# IDE
+/.idea
+.project
+.buildpath
+.settings
+*.tmproj
+*.tmproject
+tmtags
+*.sublime-project
+*.sublime-workspace
+.vscode
+
+# OS
+.DS_Store
+._*
+Thumbs.db
+
+# Tool
+.phpunit.cache/
+.phpunit.result.cache
+/vendor/
+/composer.lock
+/tmp/
+/logs/
+/phpstan-baseline.neon
+/tools/
+/.phive/
