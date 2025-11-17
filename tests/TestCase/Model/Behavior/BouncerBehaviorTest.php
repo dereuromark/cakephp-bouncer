@@ -900,6 +900,57 @@ class BouncerBehaviorTest extends TestCase
     }
 
     /**
+     * Test that reverting changes to original removes pending draft
+     */
+    public function testRevertingChangesRemovesPendingDraft()
+    {
+        // Create a test article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Add bouncer behavior
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['edit'],
+            'autoSupersede' => true,
+        ]);
+
+        // First, create a pending edit
+        $article = $this->Articles->get($articleId);
+        $article = $this->Articles->patchEntity($article, [
+            'title' => 'Changed Title',
+            'body' => 'Changed Body',
+        ]);
+        $this->Articles->save($article, ['bouncerUserId' => 2]);
+
+        // Verify draft was created
+        $pendingCount = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->count();
+        $this->assertEquals(1, $pendingCount, 'Should have 1 pending draft');
+
+        // Now edit again, reverting to original values
+        $article = $this->Articles->get($articleId);
+        $article = $this->Articles->patchEntity($article, [
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+        ]);
+        // Force dirty to trigger beforeSave callback
+        $article->setDirty('title', true);
+        $this->Articles->save($article, ['bouncerUserId' => 2]);
+
+        // Verify draft was removed
+        $pendingCount = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->count();
+        $this->assertEquals(0, $pendingCount, 'Pending draft should be removed when reverted to original');
+    }
+
+    /**
      * Test bypassCallback allows custom bypass logic
      */
     public function testBypassCallbackAllowsBypass(): void

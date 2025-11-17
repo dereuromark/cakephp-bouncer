@@ -92,6 +92,16 @@ class BouncerBehavior extends Behavior
             return;
         }
 
+        // If editing but no dirty fields, check if we should remove an existing pending draft
+        if (!$isNew && !$entity->isDirty()) {
+            $userId = $options['bouncerUserId'] ?? null;
+            if ($userId) {
+                $this->removeRevertedDraft($entity, $userId);
+            }
+
+            return;
+        }
+
         // Validate entity if configured
         if ($this->getConfig('validateOnDraft')) {
             $validator = $this->_table->getValidator();
@@ -109,9 +119,10 @@ class BouncerBehavior extends Behavior
         $bouncerRecord = $this->createBouncerRecord($entity, $options);
 
         if (!$bouncerRecord) {
-            $event->stopPropagation();
-            $event->setResult(false);
-
+            // No bouncer record created - this could mean:
+            // 1. Draft was removed because changes were reverted to original
+            // 2. No actual changes to approve
+            // In either case, allow the save to proceed normally
             return;
         }
 
@@ -224,14 +235,68 @@ class BouncerBehavior extends Behavior
                 ]);
                 $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
             } else {
-                // Update existing edit draft
-                $bouncerTable->patchEntity($existingDraft, [
-                    'data' => $data,
-                    'original_data' => $originalData,
-                ]);
-                $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
+                // Check if the new data matches the original data (effectively reverted)
+                $proposedData = json_decode($data, true) ?: [];
+                $originalDataArray = json_decode($originalData ?? '{}', true) ?: [];
+
+                // Compare only the fields that are in the proposed data
+                $isReverted = true;
+                foreach ($proposedData as $field => $value) {
+                    $originalValue = $originalDataArray[$field] ?? null;
+                    // Use loose comparison to handle string/int mismatches
+                    if ($originalValue != $value) {
+                        $isReverted = false;
+
+                        break;
+                    }
+                }
+
+                if ($isReverted && count($proposedData) > 0) {
+                    // Changes reverted to original - delete the pending draft
+                    $bouncerTable->delete($existingDraft);
+
+                    // Commit the transaction to persist the delete
+                    $connection = $bouncerTable->getConnection();
+                    if ($connection->inTransaction()) {
+                        $connection->commit();
+                        $connection->begin();
+                    }
+
+                    $bouncerRecord = null;
+                } else {
+                    // Update existing edit draft
+                    $bouncerTable->patchEntity($existingDraft, [
+                        'data' => $data,
+                        'original_data' => $originalData,
+                    ]);
+                    $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
+                }
             }
         } else {
+            // Check if the new data matches the original data (effectively no change needed)
+            // Only applies to edits, not adds
+            if (!$entity->isNew() && $originalData) {
+                $proposedData = json_decode($data, true) ?: [];
+                $originalDataArray = json_decode($originalData, true) ?: [];
+
+                // Compare only the fields that are in the proposed data
+                $isUnchanged = true;
+                foreach ($proposedData as $field => $value) {
+                    $originalValue = $originalDataArray[$field] ?? null;
+                    // Use loose comparison to handle string/int mismatches
+                    if ($originalValue != $value) {
+                        $isUnchanged = false;
+
+                        break;
+                    }
+                }
+
+                if ($isUnchanged && count($proposedData) > 0) {
+                    // No actual changes - don't create a draft
+                    return null;
+                }
+            }
+
             // Create new draft
             $bouncerRecord = $bouncerTable->newEntity([
                 'source' => $source,
@@ -476,6 +541,38 @@ class BouncerBehavior extends Behavior
     public function getLastBouncerRecord()
     {
         return $this->lastBouncerRecord;
+    }
+
+    /**
+     * Remove a pending draft if the entity has reverted to original values.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity The entity being saved
+     * @param int $userId The user ID
+     *
+     * @return void
+     */
+    protected function removeRevertedDraft(EntityInterface $entity, int $userId): void
+    {
+        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
+
+        if (!$primaryKey) {
+            return;
+        }
+
+        /** @var \Bouncer\Model\Table\BouncerRecordsTable $bouncerTable */
+        $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
+
+        $existingDraft = $bouncerTable->findPendingForRecord(
+            $this->_table->getRegistryAlias(),
+            (int)$primaryKey,
+            $userId,
+        )->first();
+
+        if ($existingDraft) {
+            // Draft exists and entity has no changes - remove the draft
+            $bouncerTable->delete($existingDraft);
+        }
     }
 
     /**
