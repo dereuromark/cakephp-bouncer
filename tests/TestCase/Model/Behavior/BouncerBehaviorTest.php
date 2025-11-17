@@ -448,4 +448,454 @@ class BouncerBehaviorTest extends TestCase
         $this->assertEquals('Test Article', $originalData['title']);
         $this->assertEquals('Test Body', $originalData['body']);
     }
+
+    /**
+     * Test that delete creates bouncer record instead of deleting
+     */
+    public function testBeforeDeleteRecord(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+        ]);
+
+        // Create an article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Try to delete it
+        $article = $this->Articles->get($articleId);
+        $result = $this->Articles->delete($article, ['bouncerUserId' => 2]);
+
+        // Delete should be bounced
+        $this->assertFalse($result);
+        $this->assertTrue($this->Articles->getBehavior('Bouncer')->wasBounced());
+
+        // Bouncer record should be created
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertNotNull($bouncerRecord);
+        $this->assertEquals('Articles', $bouncerRecord->source);
+        $this->assertEquals($articleId, $bouncerRecord->primary_key);
+        $this->assertEquals('pending', $bouncerRecord->status);
+        $this->assertEquals(2, $bouncerRecord->user_id);
+
+        // Check that it's marked as delete
+        $data = $bouncerRecord->getData();
+        $this->assertArrayHasKey('_delete', $data);
+        $this->assertTrue($data['_delete']);
+
+        // Original data should be stored
+        $originalData = json_decode($bouncerRecord->original_data, true);
+        $this->assertEquals('Test Article', $originalData['title']);
+        $this->assertEquals('Test body', $originalData['body']);
+
+        // Article should still exist
+        $this->assertTrue($this->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test that delete can be configured to not require approval
+     */
+    public function testDeleteConfigurationWithoutApproval(): void
+    {
+        // Verify default config includes 'delete'
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+        $defaultRequireApproval = $this->Articles->getBehavior('Bouncer')->getConfig('requireApproval');
+        $this->assertContains('delete', $defaultRequireApproval);
+
+        // Remove behavior and re-add with custom config
+        $this->Articles->removeBehavior('Bouncer');
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        // Configure to only require approval for 'add' and 'edit', not 'delete'
+        $this->Articles->getBehavior('Bouncer')->setConfig('requireApproval', ['add', 'edit'], false);
+
+        // Verify the config is correct (delete not in requireApproval)
+        $requireApproval = $this->Articles->getBehavior('Bouncer')->getConfig('requireApproval');
+        $this->assertNotContains('delete', $requireApproval);
+        $this->assertContains('add', $requireApproval);
+        $this->assertContains('edit', $requireApproval);
+    }
+
+    /**
+     * Test bypass bouncer for delete
+     */
+    public function testBypassBouncerForDelete(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+        ]);
+
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Delete with bypass
+        $article = $this->Articles->get($articleId);
+        $result = $this->Articles->delete($article, ['bypassBouncer' => true]);
+
+        // Should delete normally
+        $this->assertNotFalse($result);
+        $this->assertFalse($this->Articles->getBehavior('Bouncer')->wasBounced());
+
+        // No bouncer record should be created
+        $count = $this->BouncerRecords->find()->count();
+        $this->assertEquals(0, $count);
+
+        // Article should be deleted
+        $this->assertFalse($this->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test exempt users can delete directly
+     */
+    public function testExemptUsersCanDeleteDirectly(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+            'exemptUsers' => [1, 2],
+        ]);
+
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Delete as exempt user
+        $article = $this->Articles->get($articleId);
+        $result = $this->Articles->delete($article, ['bouncerUserId' => 1]);
+
+        // Should delete normally (user is exempt)
+        $this->assertNotFalse($result);
+        $this->assertFalse($this->Articles->getBehavior('Bouncer')->wasBounced());
+
+        // Article should be deleted
+        $this->assertFalse($this->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test applyApprovedChanges for delete
+     */
+    public function testApplyApprovedChangesDelete(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+        ]);
+
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Create delete draft
+        $article = $this->Articles->get($articleId);
+        $this->Articles->delete($article, ['bouncerUserId' => 1]);
+
+        // Verify article still exists
+        $this->assertTrue($this->Articles->exists(['id' => $articleId]));
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+
+        // Apply approved deletion
+        $result = $this->Articles->getBehavior('Bouncer')->applyApprovedChanges($bouncerRecord);
+
+        $this->assertNotFalse($result);
+
+        // Article should now be deleted
+        $this->assertFalse($this->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test that getLastBouncerRecord works for delete operations
+     */
+    public function testGetLastBouncerRecordForDelete(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+        ]);
+
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Delete it (create bouncer record)
+        $article = $this->Articles->get($articleId);
+        $this->Articles->delete($article, ['bouncerUserId' => 1]);
+
+        // Get last bouncer record
+        $bouncerRecord = $this->Articles->getBehavior('Bouncer')->getLastBouncerRecord();
+
+        $this->assertNotNull($bouncerRecord);
+        $this->assertEquals('Articles', $bouncerRecord->source);
+        $this->assertEquals($articleId, $bouncerRecord->primary_key);
+
+        // Verify it's a delete operation
+        $data = $bouncerRecord->getData();
+        $this->assertArrayHasKey('_delete', $data);
+        $this->assertTrue($data['_delete']);
+    }
+
+    /**
+     * Test withDraft() convenience method
+     *
+     * @return void
+     */
+    public function testWithDraft(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'userField' => 'user_id',
+            'requireApproval' => ['add', 'edit'],
+        ]);
+
+        // Create article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $article = $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Create draft
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Draft Title';
+        $article->body = 'Draft Body';
+        $this->Articles->save($article, ['bouncerUserId' => 1]);
+
+        // Load fresh article and apply draft using withDraft()
+        $article = $this->Articles->get($articleId);
+        $this->assertEquals('Original Title', $article->title);
+        $this->assertEquals('Original Body', $article->body);
+
+        // Apply draft
+        $hasDraft = $this->Articles->getBehavior('Bouncer')->withDraft($article, 1);
+
+        $this->assertTrue($hasDraft);
+        $this->assertEquals('Draft Title', $article->title);
+        $this->assertEquals('Draft Body', $article->body);
+    }
+
+    /**
+     * Test withDraft() returns false when no draft exists
+     *
+     * @return void
+     */
+    public function testWithDraftNoDraft(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'userField' => 'user_id',
+            'requireApproval' => ['add', 'edit'],
+        ]);
+
+        // Create article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Title',
+            'body' => 'Test Body',
+            'user_id' => 1,
+        ]);
+        $article = $this->Articles->save($article, ['bypassBouncer' => true]);
+
+        // Try to apply draft when none exists
+        $article = $this->Articles->get($article->id);
+        $hasDraft = $this->Articles->getBehavior('Bouncer')->withDraft($article, 1);
+
+        $this->assertFalse($hasDraft);
+        $this->assertEquals('Test Title', $article->title);
+        $this->assertEquals('Test Body', $article->body);
+    }
+
+    /**
+     * Test that multiple delete requests update existing draft instead of creating duplicates
+     *
+     * @return void
+     */
+    public function testDeleteAutoSupersedePreventsMultipleDrafts(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+            'autoSupersede' => true,
+        ]);
+
+        // Create an article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Request deletion
+        $article = $this->Articles->get($articleId);
+        $this->Articles->delete($article, ['bouncerUserId' => 1]);
+
+        // Should have 1 bouncer record
+        $count = $this->BouncerRecords->find()->where(['primary_key' => $articleId])->count();
+        $this->assertEquals(1, $count);
+
+        $firstBouncerRecord = $this->BouncerRecords->find()->where(['primary_key' => $articleId])->first();
+        $firstBouncerId = $firstBouncerRecord->id;
+
+        // Request deletion again (same user, same article)
+        $article = $this->Articles->get($articleId);
+        $this->Articles->delete($article, ['bouncerUserId' => 1]);
+
+        // Should still have only 1 bouncer record (updated, not duplicated)
+        $count = $this->BouncerRecords->find()->where(['primary_key' => $articleId, 'status' => 'pending'])->count();
+        $this->assertEquals(1, $count);
+
+        // Should be the same bouncer record ID (updated existing)
+        $secondBouncerRecord = $this->BouncerRecords->find()->where(['primary_key' => $articleId, 'status' => 'pending'])->first();
+        $this->assertEquals($firstBouncerId, $secondBouncerRecord->id);
+
+        // Verify it's still a delete operation
+        $data = $secondBouncerRecord->getData();
+        $this->assertArrayHasKey('_delete', $data);
+        $this->assertTrue($data['_delete']);
+    }
+
+    /**
+     * Test that delete request supersedes pending edit draft
+     *
+     * @return void
+     */
+    public function testDeleteSupersedesPendingEdit(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+            'autoSupersede' => true,
+        ]);
+
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Create a pending edit
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Updated Title';
+        $this->Articles->save($article, ['bouncerUserId' => 1]);
+
+        // Should have 1 pending edit
+        $editRecord = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->first();
+        $this->assertNotNull($editRecord);
+
+        $editData = $editRecord->getData();
+        $this->assertEquals('Updated Title', $editData['title']);
+
+        // Now request deletion (should supersede the edit)
+        $article = $this->Articles->get($articleId);
+        $this->Articles->delete($article, ['bouncerUserId' => 1]);
+
+        // Should still have 1 pending record
+        $count = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->count();
+        $this->assertEquals(1, $count);
+
+        // The pending record should now be a delete (superseded the edit)
+        $deleteRecord = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->first();
+
+        $deleteData = $deleteRecord->getData();
+        $this->assertArrayHasKey('_delete', $deleteData);
+        $this->assertTrue($deleteData['_delete']);
+
+        // Original edit should be superseded
+        $supersededCount = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'superseded'])
+            ->count();
+        $this->assertEquals(1, $supersededCount);
+    }
+
+    /**
+     * Test that edit request supersedes pending delete draft
+     *
+     * @return void
+     */
+    public function testEditSupersedesPendingDelete(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+            'autoSupersede' => true,
+        ]);
+
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Request deletion
+        $article = $this->Articles->get($articleId);
+        $this->Articles->delete($article, ['bouncerUserId' => 1]);
+
+        // Should have 1 pending delete
+        $deleteRecord = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->first();
+        $this->assertNotNull($deleteRecord);
+
+        $deleteData = $deleteRecord->getData();
+        $this->assertArrayHasKey('_delete', $deleteData);
+        $this->assertTrue($deleteData['_delete']);
+
+        // Now make an edit (should supersede the delete)
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Updated Title';
+        $this->Articles->save($article, ['bouncerUserId' => 1]);
+
+        // Should still have 1 pending record
+        $count = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->count();
+        $this->assertEquals(1, $count);
+
+        // The pending record should now be an edit (superseded the delete)
+        $editRecord = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->first();
+
+        $editData = $editRecord->getData();
+        $this->assertArrayNotHasKey('_delete', $editData);
+        $this->assertEquals('Updated Title', $editData['title']);
+
+        // Original delete should be superseded
+        $supersededCount = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'superseded'])
+            ->count();
+        $this->assertEquals(1, $supersededCount);
+    }
 }

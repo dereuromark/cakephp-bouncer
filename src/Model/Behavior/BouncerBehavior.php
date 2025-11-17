@@ -207,12 +207,29 @@ class BouncerBehavior extends Behavior
         }
 
         if ($existingDraft) {
-            // Update existing draft
-            $bouncerTable->patchEntity($existingDraft, [
-                'data' => $data,
-                'original_data' => $originalData,
-            ]);
-            $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
+            // Check if existing draft is a delete (different type)
+            $existingData = json_decode($existingDraft->get('data'), true) ?: [];
+            $isExistingDelete = isset($existingData['_delete']) && $existingData['_delete'] === true;
+
+            if ($isExistingDelete) {
+                // Existing draft is a delete, create new edit draft (will be superseded below)
+                $bouncerRecord = $bouncerTable->newEntity([
+                    'source' => $source,
+                    'primary_key' => $primaryKey,
+                    'user_id' => $userId,
+                    'status' => 'pending',
+                    'data' => $data,
+                    'original_data' => $originalData,
+                ]);
+                $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
+            } else {
+                // Update existing edit draft
+                $bouncerTable->patchEntity($existingDraft, [
+                    'data' => $data,
+                    'original_data' => $originalData,
+                ]);
+                $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
+            }
         } else {
             // Create new draft
             $bouncerRecord = $bouncerTable->newEntity([
@@ -275,23 +292,65 @@ class BouncerBehavior extends Behavior
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
         $source = $this->_table->getAlias();
 
+        // Check if user already has a pending draft for this record
+        $existingDraft = $bouncerTable->findPendingForRecord(
+            $source,
+            $primaryKey,
+            $userId,
+        )->first();
+
         // Store current entity state as original_data
         $originalData = json_encode($entity->toArray());
+        $data = json_encode(['_delete' => true]); // Mark as deletion
 
-        // Create delete bouncer record
-        $bouncerRecord = $bouncerTable->newEntity([
-            'source' => $source,
-            'primary_key' => $primaryKey,
-            'user_id' => $userId,
-            'status' => 'pending',
-            'data' => json_encode(['_delete' => true]), // Mark as deletion
-            'original_data' => $originalData,
-        ]);
+        if ($existingDraft) {
+            // Check if existing draft is also a delete (same type)
+            $existingData = json_decode($existingDraft->get('data'), true) ?: [];
+            $isExistingDelete = isset($existingData['_delete']) && $existingData['_delete'] === true;
 
-        $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
+            if ($isExistingDelete) {
+                // Update existing delete draft
+                $bouncerTable->patchEntity($existingDraft, [
+                    'data' => $data,
+                    'original_data' => $originalData,
+                ]);
+                $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
+            } else {
+                // Existing draft is an edit, create new delete draft (will be superseded below)
+                $bouncerRecord = $bouncerTable->newEntity([
+                    'source' => $source,
+                    'primary_key' => $primaryKey,
+                    'user_id' => $userId,
+                    'status' => 'pending',
+                    'data' => $data,
+                    'original_data' => $originalData,
+                ]);
+                $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
+            }
+        } else {
+            // Create new delete bouncer record
+            $bouncerRecord = $bouncerTable->newEntity([
+                'source' => $source,
+                'primary_key' => $primaryKey,
+                'user_id' => $userId,
+                'status' => 'pending',
+                'data' => $data,
+                'original_data' => $originalData,
+            ]);
+            $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
+        }
 
         if (!$bouncerRecord) {
             return null;
+        }
+
+        // Supersede other pending drafts if configured
+        if ($this->getConfig('autoSupersede')) {
+            $bouncerTable->supersedeOthers(
+                $source,
+                $primaryKey,
+                $bouncerRecord->id,
+            );
         }
 
         // Commit the transaction to persist the bouncer record
@@ -447,6 +506,45 @@ class BouncerBehavior extends Behavior
             $primaryKey,
             $userId,
         )->count() > 0;
+    }
+
+    /**
+     * Load draft and overlay it on the entity if one exists.
+     *
+     * Convenience method that loads a pending draft for the given user
+     * and overlays the draft data onto the entity for display/editing.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity Entity to overlay draft on
+     * @param int $userId User ID
+     *
+     * @return bool True if draft was found and applied, false otherwise
+     */
+    public function withDraft(EntityInterface $entity, int $userId): bool
+    {
+        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
+
+        if (!$primaryKey) {
+            return false;
+        }
+
+        $draft = $this->loadDraft((int)$primaryKey, $userId);
+
+        if (!$draft) {
+            return false;
+        }
+
+        // Overlay draft data onto the entity
+        $draftData = json_decode($draft->get('data'), true) ?: [];
+
+        // Don't overlay delete drafts - they only contain {_delete: true}
+        if (isset($draftData['_delete']) && $draftData['_delete'] === true) {
+            return false;
+        }
+
+        $this->_table->patchEntity($entity, $draftData);
+
+        return true;
     }
 
     /**
