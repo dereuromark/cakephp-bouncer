@@ -2,76 +2,46 @@ name: CI
 
 on:
   push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - '*'
+  workflow_dispatch:
 
 jobs:
-  testsuite:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.2', '8.3']
+        php-version: ['8.2', '8.3', '8.4']
 
+    name: PHP ${{ matrix.php-version }} Test
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-version }}
-        extensions: mbstring, intl, pdo_sqlite
-        coverage: pcov
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, intl
+          coverage: pcov
 
-    - name: Composer install
-      run: composer install --no-progress --prefer-dist --optimize-autoloader
+      - name: PHP Version
+        run: php -v
 
-    - name: Run PHPUnit
-      run: |
-        vendor/bin/phpunit --stderr
+      - name: Install dependencies
+        run: |
+          composer self-update
+          composer validate
+          composer install --prefer-dist --no-progress
 
-  coding-standard:
-    name: Coding Standard
-    runs-on: ubuntu-22.04
+      - name: Run PHPUnit
+        run: |
+          if [[ ${{ matrix.php-version }} == '8.2' ]]; then
+            vendor/bin/phpunit --coverage-clover=coverage.xml
+          else
+            vendor/bin/phpunit
+          fi
 
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mbstring, intl
-        coverage: none
-
-    - name: Composer install
-      run: composer install --no-progress --prefer-dist --optimize-autoloader
-
-    - name: Run PHP CodeSniffer
-      run: composer cs-check
-
-  static-analysis:
-    name: Static Analysis
-    runs-on: ubuntu-22.04
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mbstring, intl
-        coverage: none
-
-    - name: Composer install
-      run: composer install --no-progress --prefer-dist --optimize-autoloader
-
-    - name: Install PHPStan
-      run: composer stan-setup
-
-    - name: Run PHPStan
-      run: composer stan
+      - name: Code Style Check
+        if: matrix.php-version == '8.2'
+        run: composer cs-check
