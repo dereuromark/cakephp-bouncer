@@ -6,6 +6,7 @@ use Cake\Cache\Cache;
 use Cake\Core\Configure;
 use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\Fixture\SchemaLoader;
+use TestApp\Controller\AppController;
 
 require_once 'vendor/autoload.php';
 
@@ -59,3 +60,6 @@ if (getenv('FIXTURE_SCHEMA_METADATA')) {
 if (file_exists(ROOT . DS . 'config' . DS . 'bootstrap.php')) {
     require ROOT . DS . 'config' . DS . 'bootstrap.php';
 }
+
+// Class aliases for test app
+class_alias(AppController::class, 'App\Controller\AppController');

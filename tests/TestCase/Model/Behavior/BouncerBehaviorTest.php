@@ -198,28 +198,42 @@ class BouncerBehaviorTest extends TestCase
      */
     public function testRequireApprovalOnlyAdd(): void
     {
-        $this->markTestIncomplete('Transaction state issue - needs further investigation');
-
-        // Add should be bounced
+        // Create article first (before adding behavior to avoid transaction issues)
         $article = $this->Articles->newEntity([
             'title' => 'Test',
             'body' => 'Test',
             'user_id' => 1,
         ]);
-        $result = $this->Articles->save($article, ['bouncerUserId' => 1, 'bypassBouncer' => true]);
-        $this->assertNotFalse($result);
+        $this->Articles->save($article);
+        $articleId = $article->id;
 
-        // Now add the behavior with only 'add' requiring approval
-        $this->Articles->addBehavior('Bouncer.Bouncer', [
-            'requireApproval' => ['add'],
-        ]);
+        // Clear any table instances to reset state
+        $this->getTableLocator()->clear();
+        $this->Articles = $this->fetchTable('TestApp.Articles');
 
-        // Edit should NOT be bounced
-        $article = $this->Articles->get($article->id);
-        $article->title = 'Updated';
-        $result = $this->Articles->save($article, ['bouncerUserId' => 1]);
-        $this->assertNotFalse($result);
-        $this->assertFalse($this->Articles->getBehavior('Bouncer')->wasBounced());
+        // Now add behavior with only 'add' and 'delete' requiring approval (not 'edit')
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+        $behavior = $this->Articles->getBehavior('Bouncer');
+        $behavior->setConfig('requireApproval', ['add', 'delete'], false);
+
+        // Verify the configuration is correct
+        $this->assertEquals(['add', 'delete'], $behavior->getConfig('requireApproval'));
+
+        // Patch the article to ensure it has dirty fields
+        $article = $this->Articles->get($articleId);
+        $this->Articles->patchEntity($article, ['title' => 'Updated']);
+        $result = $this->Articles->save($article, ['bouncerUserId' => 1, 'atomic' => true]);
+
+        // Edit should NOT be bounced (only 'add' and 'delete' require approval)
+        $this->assertNotFalse($result, 'Edit operation should succeed when edit does not require approval');
+        $this->assertFalse($behavior->wasBounced());
+
+        // Verify the article was updated
+        $article = $this->Articles->get($articleId);
+        $this->assertEquals('Updated', $article->title);
+
+        // Verify no bouncer record was created for the edit
+        $this->assertEquals(0, $this->BouncerRecords->find()->count());
     }
 
     /**

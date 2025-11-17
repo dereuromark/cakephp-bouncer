@@ -15,6 +15,11 @@ use Cake\Event\EventInterface;
 class BouncerController extends AppController
 {
     /**
+     * @var string|null
+     */
+    protected ?string $defaultTable = 'Bouncer.BouncerRecords';
+
+    /**
      * Before filter callback.
      *
      * @param \Cake\Event\EventInterface $event Event
@@ -25,7 +30,7 @@ class BouncerController extends AppController
     {
         parent::beforeFilter($event);
 
-        $this->loadModel('Bouncer.BouncerRecords');
+        return null;
     }
 
     /**
@@ -67,6 +72,8 @@ class BouncerController extends AppController
             ->toArray();
 
         $this->set(compact('bouncerRecords', 'sources', 'status', 'source', 'userId'));
+
+        return null;
     }
 
     /**
@@ -92,6 +99,8 @@ class BouncerController extends AppController
         }
 
         $this->set(compact('bouncerRecord', 'currentRecord'));
+
+        return null;
     }
 
     /**
@@ -125,11 +134,17 @@ class BouncerController extends AppController
                     $sourceTable->addBehavior('Bouncer.Bouncer');
                 }
 
-                $entity = $sourceTable->getBehavior('Bouncer')->applyApprovedChanges($bouncerRecord);
+                /** @var \Bouncer\Model\Behavior\BouncerBehavior $behavior */
+                /** @phpstan-ignore-next-line */
+                $behavior = $sourceTable->getBehavior('Bouncer');
+                $entity = $behavior->applyApprovedChanges($bouncerRecord);
 
                 if (!$entity) {
                     throw new \RuntimeException('Failed to apply changes to ' . $bouncerRecord->source);
                 }
+
+                $primaryKeyField = $sourceTable->getPrimaryKey();
+                $primaryKeyValue = is_object($entity) ? $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField) : null;
 
                 // Update bouncer record
                 $this->BouncerRecords->patchEntity($bouncerRecord, [
@@ -137,7 +152,7 @@ class BouncerController extends AppController
                     'reviewer_id' => $this->request->getAttribute('identity')?->getIdentifier(),
                     'reviewed' => new \DateTime(),
                     'reason' => $this->request->getData('reason'),
-                    'primary_key' => $entity->get($sourceTable->getPrimaryKey()), // Set for new records
+                    'primary_key' => $primaryKeyValue, // Set for new records
                 ]);
 
                 if (!$this->BouncerRecords->save($bouncerRecord)) {

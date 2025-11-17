@@ -185,7 +185,8 @@ class BouncerBehavior extends Behavior
         }
 
         $isNew = $entity->isNew();
-        $primaryKey = $isNew ? null : $entity->get($this->_table->getPrimaryKey());
+        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKey = $isNew ? null : $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
 
         $source = $this->_table->getAlias();
 
@@ -270,7 +271,8 @@ class BouncerBehavior extends Behavior
             return null;
         }
 
-        $primaryKey = $entity->get($this->_table->getPrimaryKey());
+        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
         $source = $this->_table->getAlias();
 
         // Store current entity state as original_data
@@ -307,6 +309,8 @@ class BouncerBehavior extends Behavior
      *
      * @param \Cake\Datasource\EntityInterface $entity Entity
      *
+     * @throws \RuntimeException
+     *
      * @return string
      */
     protected function serializeEntity(EntityInterface $entity): string
@@ -321,7 +325,12 @@ class BouncerBehavior extends Behavior
         // Remove internal fields
         unset($data['created'], $data['modified']);
 
-        return json_encode($data);
+        $encoded = json_encode($data);
+        if ($encoded === false) {
+            throw new \RuntimeException('Failed to encode entity data');
+        }
+
+        return $encoded;
     }
 
     /**
