@@ -51,31 +51,6 @@ See [docs/README.md](docs/README.md) for detailed documentation including:
 
 See the plugin in action: [https://sandbox.dereuromark.de/sandbox/bouncer-examples](https://sandbox.dereuromark.de/sandbox/bouncer-examples)
 
-## Requirements
-
-- PHP 8.2+
-- CakePHP 5.1+
-
-## Testing
-
-Run the test suite:
-
-```bash
-composer test
-```
-
-Run coding standards check:
-
-```bash
-composer cs-check
-```
-
-Run static analysis:
-
-```bash
-composer stan
-```
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
