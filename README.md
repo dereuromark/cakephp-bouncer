@@ -263,29 +263,7 @@ Run static analysis:
 composer stan
 ```
 
-## Requirements
-
-- PHP 8.2+
-- CakePHP 5.1+
-
 ## Contributing
 
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass and coding standards are met
-5. Submit a pull request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
 
-## License
-
-MIT License. See [LICENSE](LICENSE) file for details.
-
-## Author
-
-[Mark Scherer](https://www.dereuromark.de)
-
-## Support
-
-- Report issues: [GitHub Issues](https://github.com/dereuromark/cakephp-bouncer/issues)
-- Documentation: [docs/](docs/)

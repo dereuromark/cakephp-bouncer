@@ -316,10 +316,17 @@ class BouncerBehavior extends Behavior
     protected function serializeEntity(EntityInterface $entity): string
     {
         // Get only dirty fields for updates, all fields for new records
+        // BUT: if no dirty fields (e.g. freshly loaded entity for original_data), get all fields
         if ($entity->isNew()) {
             $data = $entity->toArray();
         } else {
-            $data = $entity->extract($entity->getDirty());
+            $dirty = $entity->getDirty();
+            if (!$dirty) {
+                // No dirty fields - this is likely original_data, get all fields
+                $data = $entity->toArray();
+            } else {
+                $data = $entity->extract($dirty);
+            }
         }
 
         // Remove internal fields

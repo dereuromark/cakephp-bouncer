@@ -358,4 +358,94 @@ class BouncerBehaviorTest extends TestCase
         $article = $this->Articles->get($articleId);
         $this->assertEquals('Updated', $article->title);
     }
+
+    /**
+     * Test that original_data is populated correctly for edits
+     *
+     * @return void
+     */
+    public function testOriginalDataIsStoredForEdits(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'userField' => 'user_id',
+            'requireApproval' => ['add', 'edit'],
+        ]);
+
+        // Create an article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $article = $this->Articles->save($article, ['bypassBouncer' => true]);
+        $this->assertNotFalse($article);
+        $articleId = $article->id;
+
+        // Now edit it (should create bouncer record with original_data)
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Updated Title';
+        $article->body = 'Updated Body';
+
+        $result = $this->Articles->save($article, ['bouncerUserId' => 1]);
+        $this->assertFalse($result); // Should be intercepted by bouncer
+
+        $this->assertTrue($this->Articles->getBehavior('Bouncer')->wasBounced());
+
+        // Check that bouncer record has original_data populated
+        $bouncerRecord = $this->Articles->getBehavior('Bouncer')->getLastBouncerRecord();
+        $this->assertNotNull($bouncerRecord);
+
+        $originalData = json_decode($bouncerRecord->original_data, true);
+        $this->assertNotEmpty($originalData, 'original_data should not be empty for edits');
+        $this->assertEquals('Original Title', $originalData['title']);
+        $this->assertEquals('Original Body', $originalData['body']);
+
+        // Check that proposed data has the updates
+        $proposedData = json_decode($bouncerRecord->data, true);
+        $this->assertEquals('Updated Title', $proposedData['title']);
+        $this->assertEquals('Updated Body', $proposedData['body']);
+    }
+
+    /**
+     * Test that original_data contains all fields, not just dirty fields
+     *
+     * This tests the fix for the bug where freshly loaded entities
+     * have no dirty fields, causing original_data to be empty
+     *
+     * @return void
+     */
+    public function testOriginalDataContainsAllFieldsNotJustDirty(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'userField' => 'user_id',
+            'requireApproval' => ['add', 'edit'],
+        ]);
+
+        // Create an article with multiple fields
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test Body',
+            'user_id' => 1,
+        ]);
+        $article = $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Edit only one field
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Updated Title';
+        // body is NOT changed
+
+        $this->Articles->save($article, ['bouncerUserId' => 1]);
+
+        $bouncerRecord = $this->Articles->getBehavior('Bouncer')->getLastBouncerRecord();
+        $originalData = json_decode($bouncerRecord->original_data, true);
+
+        // original_data should contain ALL fields from the original article
+        // not just the dirty ones
+        $this->assertArrayHasKey('title', $originalData);
+        $this->assertArrayHasKey('body', $originalData);
+        $this->assertArrayHasKey('user_id', $originalData);
+        $this->assertEquals('Test Article', $originalData['title']);
+        $this->assertEquals('Test Body', $originalData['body']);
+    }
 }
