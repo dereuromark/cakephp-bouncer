@@ -901,6 +901,8 @@ class BouncerBehaviorTest extends TestCase
 
     /**
      * Test that reverting changes to original removes pending draft
+     *
+     * @return void
      */
     public function testRevertingChangesRemovesPendingDraft()
     {
