@@ -32,6 +32,7 @@ class BouncerBehavior extends Behavior
         'requireApproval' => ['add', 'edit', 'delete'],
         'exemptRoles' => [],
         'exemptUsers' => [],
+        'bypassCallback' => null,
         'validateOnDraft' => true,
         'autoSupersede' => true,
     ];
@@ -439,7 +440,16 @@ class BouncerBehavior extends Behavior
             return true;
         }
 
-        // Check exempt users
+        // Check bypass callback if configured
+        $callback = $this->getConfig('bypassCallback');
+        if ($callback !== null && is_callable($callback)) {
+            $result = $callback($entity, $options, $this->_table);
+            if ($result === true) {
+                return true;
+            }
+        }
+
+        // Check exempt users (fallback for backward compatibility)
         $userId = $this->getUserId($entity, $options);
         if ($userId && in_array($userId, $this->getConfig('exemptUsers'), true)) {
             return true;

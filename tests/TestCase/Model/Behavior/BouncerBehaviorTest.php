@@ -898,4 +898,204 @@ class BouncerBehaviorTest extends TestCase
             ->count();
         $this->assertEquals(1, $supersededCount);
     }
+
+    /**
+     * Test bypassCallback allows custom bypass logic
+     */
+    public function testBypassCallbackAllowsBypass(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'bypassCallback' => function ($entity, $options, $table) {
+                // Allow bypass if user_id is 99 (custom logic)
+                $userId = $options['bouncerUserId'] ?? $entity->get('user_id');
+
+                return $userId === 99;
+            },
+        ]);
+
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+
+        // User 99 should bypass (not be bounced)
+        $result = $this->Articles->save($article, ['bouncerUserId' => 99]);
+        $this->assertNotFalse($result);
+        $this->assertFalse($this->Articles->getBehavior('Bouncer')->wasBounced());
+
+        // Article should exist
+        $this->assertEquals(1, $this->Articles->find()->count());
+    }
+
+    /**
+     * Test bypassCallback denies bypass when returning false
+     */
+    public function testBypassCallbackDeniesWhenReturnsFalse(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'bypassCallback' => function ($entity, $options, $table) {
+                // Only allow bypass if user_id is 99
+                $userId = $options['bouncerUserId'] ?? $entity->get('user_id');
+
+                return $userId === 99;
+            },
+        ]);
+
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+
+        // User 1 should NOT bypass (should be bounced)
+        $result = $this->Articles->save($article, ['bouncerUserId' => 1]);
+        $this->assertFalse($result);
+        $this->assertTrue($this->Articles->getBehavior('Bouncer')->wasBounced());
+
+        // No article should exist, only bouncer record
+        $this->assertEquals(0, $this->Articles->find()->count());
+        $this->assertEquals(1, $this->BouncerRecords->find()->count());
+    }
+
+    /**
+     * Test bypassCallback receives correct parameters
+     */
+    public function testBypassCallbackParameters(): void
+    {
+        $receivedEntity = null;
+        $receivedOptions = null;
+        $receivedTable = null;
+
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'bypassCallback' => function ($entity, $options, $table) use (&$receivedEntity, &$receivedOptions, &$receivedTable) {
+                $receivedEntity = $entity;
+                $receivedOptions = $options;
+                $receivedTable = $table;
+
+                return true; // Allow bypass
+            },
+        ]);
+
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+
+        $this->Articles->save($article, ['bouncerUserId' => 1]);
+
+        // Verify callback received correct parameters
+        $this->assertInstanceOf('Cake\Datasource\EntityInterface', $receivedEntity);
+        $this->assertInstanceOf('ArrayObject', $receivedOptions);
+        $this->assertInstanceOf('Cake\ORM\Table', $receivedTable);
+        $this->assertEquals('Test Article', $receivedEntity->title);
+        $this->assertEquals(1, $receivedOptions['bouncerUserId']);
+    }
+
+    /**
+     * Test bypassCallback works with entity-based decisions
+     */
+    public function testBypassCallbackEntityBasedDecision(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'bypassCallback' => function ($entity, $options, $table) {
+                // Allow bypass only for articles with specific title
+                return $entity->title === 'Admin Article';
+            },
+        ]);
+
+        // Article with special title should bypass
+        $article1 = $this->Articles->newEntity([
+            'title' => 'Admin Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $result1 = $this->Articles->save($article1, ['bouncerUserId' => 1]);
+        $this->assertNotFalse($result1);
+
+        // Regular article should be bounced
+        $article2 = $this->Articles->newEntity([
+            'title' => 'Regular Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $result2 = $this->Articles->save($article2, ['bouncerUserId' => 1]);
+        $this->assertFalse($result2);
+
+        // Should have 1 real article and 1 bouncer record
+        $this->assertEquals(1, $this->Articles->find()->count());
+        $this->assertEquals(1, $this->BouncerRecords->find()->count());
+    }
+
+    /**
+     * Test bypassCallback works for delete operations
+     */
+    public function testBypassCallbackForDelete(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+            'bypassCallback' => function ($entity, $options, $table) {
+                // Allow delete bypass if user_id is 99
+                $userId = $options['bouncerUserId'] ?? null;
+
+                return $userId === 99;
+            },
+        ]);
+
+        // Create article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Delete as user 99 (should bypass)
+        $article = $this->Articles->get($articleId);
+        $result = $this->Articles->delete($article, ['bouncerUserId' => 99]);
+
+        $this->assertNotFalse($result);
+        $this->assertFalse($this->Articles->getBehavior('Bouncer')->wasBounced());
+        $this->assertFalse($this->Articles->exists(['id' => $articleId]));
+    }
+
+    /**
+     * Test exemptUsers still works when bypassCallback is set (backward compatibility)
+     */
+    public function testExemptUsersWithBypassCallback(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'exemptUsers' => [1],
+            'bypassCallback' => function ($entity, $options, $table) {
+                // Callback only allows user 99
+                $userId = $options['bouncerUserId'] ?? $entity->get('user_id');
+
+                return $userId === 99;
+            },
+        ]);
+
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+
+        // User 99 should bypass (via callback)
+        $result1 = $this->Articles->save($article, ['bouncerUserId' => 99]);
+        $this->assertNotFalse($result1);
+
+        // User 1 should also bypass (via exemptUsers fallback)
+        $article2 = $this->Articles->newEntity([
+            'title' => 'Test Article 2',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $result2 = $this->Articles->save($article2, ['bouncerUserId' => 1]);
+        $this->assertNotFalse($result2);
+
+        // Both articles should exist
+        $this->assertEquals(2, $this->Articles->find()->count());
+    }
 }
