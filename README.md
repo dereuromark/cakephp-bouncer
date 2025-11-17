@@ -243,6 +243,10 @@ The `bouncer_records` table stores:
 - `reason`: Approval/rejection note
 - Timestamps: `created`, `modified`, `reviewed`
 
+## Demo
+
+See the plugin in action: [https://sandbox.dereuromark.de/sandbox/bouncer-examples](https://sandbox.dereuromark.de/sandbox/bouncer-examples)
+
 ## Testing
 
 Run the test suite:
@@ -266,4 +270,3 @@ composer stan
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
-
