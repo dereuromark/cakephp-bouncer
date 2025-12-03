@@ -54,6 +54,13 @@ class BouncerBehavior extends Behavior
     protected $lastBouncerRecord;
 
     /**
+     * Tracks if last bouncer operation failed (vs. intentionally skipped).
+     *
+     * @var bool
+     */
+    protected bool $bouncerFailed = false;
+
+    /**
      * Initialize hook.
      *
      * @param array<string, mixed> $config Configuration
@@ -80,6 +87,7 @@ class BouncerBehavior extends Behavior
     {
         $this->wasBounced = false;
         $this->lastBouncerRecord = null;
+        $this->bouncerFailed = false;
 
         // Check if we should bypass bouncer
         if ($this->shouldBypass($entity, $options)) {
@@ -121,10 +129,17 @@ class BouncerBehavior extends Behavior
         $bouncerRecord = $this->createBouncerRecord($entity, $options);
 
         if (!$bouncerRecord) {
-            // No bouncer record created - this could mean:
-            // 1. Draft was removed because changes were reverted to original
-            // 2. No actual changes to approve
-            // In either case, allow the save to proceed normally
+            // @phpstan-ignore if.alwaysFalse (createBouncerRecord sets this property)
+            if ($this->bouncerFailed) {
+                // Bouncer record creation failed - block the save to prevent bypass
+                $event->stopPropagation();
+                $event->setResult(false);
+
+                return;
+            }
+
+            // No bouncer record created intentionally (reverted to original, no changes)
+            // Allow the save to proceed normally
             return;
         }
 
@@ -151,6 +166,7 @@ class BouncerBehavior extends Behavior
     {
         $this->wasBounced = false;
         $this->lastBouncerRecord = null;
+        $this->bouncerFailed = false;
 
         // Check if we should bypass bouncer
         if ($this->shouldBypass($entity, $options)) {
@@ -195,6 +211,8 @@ class BouncerBehavior extends Behavior
 
         $userId = $this->getUserId($entity, $options);
         if (!$userId) {
+            $this->bouncerFailed = true;
+
             return null;
         }
 
@@ -312,6 +330,8 @@ class BouncerBehavior extends Behavior
         }
 
         if (!$bouncerRecord) {
+            $this->bouncerFailed = true;
+
             return null;
         }
 
@@ -353,6 +373,8 @@ class BouncerBehavior extends Behavior
 
         $userId = $this->getUserId($entity, $options);
         if (!$userId) {
+            $this->bouncerFailed = true;
+
             return null;
         }
 
@@ -409,6 +431,8 @@ class BouncerBehavior extends Behavior
         }
 
         if (!$bouncerRecord) {
+            $this->bouncerFailed = true;
+
             return null;
         }
 
