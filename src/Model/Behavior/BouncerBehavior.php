@@ -117,6 +117,12 @@ class BouncerBehavior extends Behavior
                 $this->removeRevertedDraft($entity, $userId);
             }
 
+            // If a draft was removed, stop the save (nothing to save anyway)
+            if ($this->draftRemoved) {
+                $event->stopPropagation();
+                $event->setResult(false);
+            }
+
             return;
         }
 
