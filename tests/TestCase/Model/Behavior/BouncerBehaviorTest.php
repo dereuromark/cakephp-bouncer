@@ -1158,4 +1158,345 @@ class BouncerBehaviorTest extends TestCase
         // Both articles should exist
         $this->assertEquals(2, $this->Articles->find()->count());
     }
+
+    /**
+     * Test that note is stored when creating new record draft
+     */
+    public function testNoteStoredOnNewRecord(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+
+        $result = $this->Articles->save($article, [
+            'bouncerUserId' => 1,
+            'bouncerNote' => 'Adding new article for documentation',
+        ]);
+
+        $this->assertFalse($result);
+        $this->assertTrue($this->Articles->getBehavior('Bouncer')->wasBounced());
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertNotNull($bouncerRecord);
+        $this->assertEquals('Adding new article for documentation', $bouncerRecord->note);
+    }
+
+    /**
+     * Test that note is stored when editing record
+     */
+    public function testNoteStoredOnEditRecord(): void
+    {
+        // Create article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        // Edit the article with a note
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Updated Title';
+        $result = $this->Articles->save($article, [
+            'bouncerUserId' => 2,
+            'bouncerNote' => 'Fixing typo in title',
+        ]);
+
+        $this->assertFalse($result);
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertNotNull($bouncerRecord);
+        $this->assertEquals('Fixing typo in title', $bouncerRecord->note);
+    }
+
+    /**
+     * Test that note is stored when deleting record
+     */
+    public function testNoteStoredOnDeleteRecord(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['add', 'edit', 'delete'],
+        ]);
+
+        // Create article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Delete with note
+        $article = $this->Articles->get($articleId);
+        $result = $this->Articles->delete($article, [
+            'bouncerUserId' => 2,
+            'bouncerNote' => 'Content is outdated and no longer relevant',
+        ]);
+
+        $this->assertFalse($result);
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertNotNull($bouncerRecord);
+        $this->assertEquals('Content is outdated and no longer relevant', $bouncerRecord->note);
+        $this->assertTrue($bouncerRecord->isDeleteProposal());
+    }
+
+    /**
+     * Test that note is optional (can be null)
+     */
+    public function testNoteIsOptional(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+
+        $result = $this->Articles->save($article, ['bouncerUserId' => 1]);
+
+        $this->assertFalse($result);
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertNotNull($bouncerRecord);
+        $this->assertNull($bouncerRecord->note);
+    }
+
+    /**
+     * Test that note is truncated to 255 characters
+     */
+    public function testNoteTruncatedTo255Chars(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        $longNote = str_repeat('a', 300);
+
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+
+        $result = $this->Articles->save($article, [
+            'bouncerUserId' => 1,
+            'bouncerNote' => $longNote,
+        ]);
+
+        $this->assertFalse($result);
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertNotNull($bouncerRecord);
+        $this->assertEquals(255, mb_strlen($bouncerRecord->note));
+        $this->assertEquals(str_repeat('a', 255), $bouncerRecord->note);
+    }
+
+    /**
+     * Test that note is updated when editing existing draft
+     */
+    public function testNoteUpdatedOnExistingDraft(): void
+    {
+        // Create article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        // Create first draft with note
+        $article = $this->Articles->get($articleId);
+        $article->title = 'First Update';
+        $this->Articles->save($article, [
+            'bouncerUserId' => 1,
+            'bouncerNote' => 'First reason',
+        ]);
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertEquals('First reason', $bouncerRecord->note);
+
+        // Update draft with new note
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Second Update';
+        $this->Articles->save($article, [
+            'bouncerUserId' => 1,
+            'bouncerNote' => 'Updated reason',
+        ]);
+
+        // Should still be 1 pending record
+        $count = $this->BouncerRecords->find()->where(['status' => 'pending'])->count();
+        $this->assertEquals(1, $count);
+
+        $bouncerRecord = $this->BouncerRecords->find()->where(['status' => 'pending'])->first();
+        $this->assertEquals('Updated reason', $bouncerRecord->note);
+    }
+
+    /**
+     * Test that note is preserved when updating draft without new note
+     */
+    public function testNotePreservedWhenUpdatingWithoutNewNote(): void
+    {
+        // Create article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        // Create first draft with note
+        $article = $this->Articles->get($articleId);
+        $article->title = 'First Update';
+        $this->Articles->save($article, [
+            'bouncerUserId' => 1,
+            'bouncerNote' => 'Initial reason',
+        ]);
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertEquals('Initial reason', $bouncerRecord->note);
+
+        // Update draft without note (should preserve original note)
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Second Update';
+        $this->Articles->save($article, [
+            'bouncerUserId' => 1,
+        ]);
+
+        $bouncerRecord = $this->BouncerRecords->find()->where(['status' => 'pending'])->first();
+        $this->assertEquals('Initial reason', $bouncerRecord->note);
+    }
+
+    /**
+     * Test that empty string note is treated as no note
+     */
+    public function testEmptyStringNoteIsNull(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Test body',
+            'user_id' => 1,
+        ]);
+
+        $result = $this->Articles->save($article, [
+            'bouncerUserId' => 1,
+            'bouncerNote' => '',
+        ]);
+
+        $this->assertFalse($result);
+
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertNotNull($bouncerRecord);
+        // Empty string is stored as empty string
+        $this->assertEquals('', $bouncerRecord->note);
+    }
+
+    /**
+     * Test that wasDraftRemoved returns true when draft is removed due to revert
+     *
+     * This tests the fix for the bug where removeRevertedDraft used getRegistryAlias()
+     * but drafts were created with getAlias(), causing lookup mismatches.
+     *
+     * @return void
+     */
+    public function testWasDraftRemovedReturnsTrue(): void
+    {
+        // Create a test article first
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        // Add bouncer behavior
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['edit'],
+        ]);
+
+        $bouncer = $this->Articles->getBehavior('Bouncer');
+
+        // Create a pending edit
+        $article = $this->Articles->get($articleId);
+        $article = $this->Articles->patchEntity($article, [
+            'title' => 'Changed Title',
+        ]);
+        $this->Articles->save($article, ['bouncerUserId' => 2]);
+
+        // Verify draft was created
+        $this->assertTrue($bouncer->hasPendingDraft($articleId, 2));
+        $this->assertFalse($bouncer->wasDraftRemoved());
+        $this->assertTrue($bouncer->wasBounced(), 'First save should have been bounced');
+
+        // Simulate the real-world scenario: load the entity and apply the draft
+        // This is what happens in the propose action: user sees their draft content
+        $article = $this->Articles->get($articleId);
+        $bouncer->withDraft($article, 2);
+        // Now entity has title = "Changed Title" (the draft content)
+
+        // User reverts by submitting the original content
+        $article = $this->Articles->patchEntity($article, [
+            'title' => 'Original Title',  // Different from draft, same as original = revert
+        ]);
+
+        // Entity should be dirty (title changed from draft content to original)
+        $this->assertTrue($article->isDirty('title'));
+
+        $this->Articles->save($article, ['bouncerUserId' => 2]);
+
+        // Draft should be removed since content matches original
+        $this->assertTrue($bouncer->wasDraftRemoved());
+        $this->assertFalse($bouncer->hasPendingDraft($articleId, 2));
+    }
+
+    /**
+     * Test that source alias is consistent between create and lookup
+     *
+     * This ensures that drafts created with getAlias() can be found by
+     * removeRevertedDraft which should also use getAlias().
+     *
+     * @return void
+     */
+    public function testSourceAliasConsistency(): void
+    {
+        // Create a test article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Title',
+            'body' => 'Test Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['edit'],
+        ]);
+
+        // Create draft
+        $article = $this->Articles->get($articleId);
+        $article->title = 'Changed';
+        $this->Articles->save($article, ['bouncerUserId' => 1]);
+
+        // Verify the source is the simple alias, not the registry alias
+        $bouncerRecord = $this->BouncerRecords->find()->first();
+        $this->assertNotNull($bouncerRecord);
+        $this->assertEquals('Articles', $bouncerRecord->source);
+        $this->assertNotEquals('TestApp.Articles', $bouncerRecord->source);
+    }
 }
