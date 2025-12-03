@@ -92,6 +92,11 @@ class BouncerRecordsTable extends Table
             ->allowEmptyString('original_data');
 
         $validator
+            ->scalar('note')
+            ->maxLength('note', 255)
+            ->allowEmptyString('note');
+
+        $validator
             ->scalar('reason')
             ->allowEmptyString('reason');
 

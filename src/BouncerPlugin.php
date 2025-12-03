@@ -43,20 +43,26 @@ class BouncerPlugin extends BasePlugin
      */
     public function routes(RouteBuilder $routes): void
     {
-        $routes->plugin(
-            'Bouncer',
-            ['path' => '/bouncer'],
-            function (RouteBuilder $builder): void {
-                $builder->setExtensions(['json']);
+        $routes->prefix('Admin', function (RouteBuilder $routes): void {
+            $routes->plugin('Bouncer', ['path' => '/bouncer'], function (RouteBuilder $routes): void {
+                $routes->setRouteClass(DashedRoute::class);
 
-                $builder->prefix('Admin', function (RouteBuilder $routes): void {
-                    $routes->setRouteClass(DashedRoute::class);
-                    $routes->fallbacks();
-                });
+                $routes->connect('/', ['controller' => 'Bouncer', 'action' => 'index']);
+                $routes->connect('/view/{id}', ['controller' => 'Bouncer', 'action' => 'view'])
+                    ->setPass(['id'])
+                    ->setPatterns(['id' => '[0-9]+']);
+                $routes->connect('/approve/{id}', ['controller' => 'Bouncer', 'action' => 'approve'])
+                    ->setPass(['id'])
+                    ->setPatterns(['id' => '[0-9]+']);
+                $routes->connect('/reject/{id}', ['controller' => 'Bouncer', 'action' => 'reject'])
+                    ->setPass(['id'])
+                    ->setPatterns(['id' => '[0-9]+']);
+                $routes->connect('/delete/{id}', ['controller' => 'Bouncer', 'action' => 'delete'])
+                    ->setPass(['id'])
+                    ->setPatterns(['id' => '[0-9]+']);
 
-                // Note: csrf middleware should be registered in Application.php if needed
-                $builder->fallbacks();
-            },
-        );
+                $routes->fallbacks();
+            });
+        });
     }
 }

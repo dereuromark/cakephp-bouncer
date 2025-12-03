@@ -17,6 +17,7 @@ use Cake\ORM\Entity;
  * @property string $status
  * @property string $data
  * @property string|null $original_data
+ * @property string|null $note
  * @property string|null $reason
  * @property \Cake\I18n\DateTime|null $reviewed
  * @property \Cake\I18n\DateTime|null $created
@@ -37,6 +38,7 @@ class BouncerRecord extends Entity
         'status' => true,
         'data' => true,
         'original_data' => true,
+        'note' => true,
         'reason' => true,
         'reviewed' => true,
         'created' => true,

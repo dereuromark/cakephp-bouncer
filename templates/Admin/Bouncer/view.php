@@ -68,9 +68,15 @@
                 </div>
             </div>
 
+            <?php if ($bouncerRecord->note) { ?>
+                <div class="alert alert-secondary mt-3">
+                    <strong><?= __('User Note:') ?></strong> <?= h($bouncerRecord->note) ?>
+                </div>
+            <?php } ?>
+
             <?php if ($bouncerRecord->reason) { ?>
                 <div class="alert alert-info mt-3">
-                    <strong><?= __('Reason:') ?></strong> <?= h($bouncerRecord->reason) ?>
+                    <strong><?= __('Reviewer Reason:') ?></strong> <?= h($bouncerRecord->reason) ?>
                 </div>
             <?php } ?>
         </div>

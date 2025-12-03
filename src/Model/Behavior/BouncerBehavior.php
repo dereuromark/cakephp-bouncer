@@ -252,6 +252,8 @@ class BouncerBehavior extends Behavior
             $originalData = $this->serializeEntity($original);
         }
 
+        $note = $this->getNote($options);
+
         if ($existingDraft) {
             // Check if existing draft is a delete (different type)
             $existingData = json_decode($existingDraft->get('data'), true) ?: [];
@@ -266,6 +268,7 @@ class BouncerBehavior extends Behavior
                     'status' => 'pending',
                     'data' => $data,
                     'original_data' => $originalData,
+                    'note' => $note,
                 ]);
                 $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
             } else {
@@ -300,10 +303,14 @@ class BouncerBehavior extends Behavior
                     $bouncerRecord = null;
                 } else {
                     // Update existing edit draft
-                    $bouncerTable->patchEntity($existingDraft, [
+                    $patchData = [
                         'data' => $data,
                         'original_data' => $originalData,
-                    ]);
+                    ];
+                    if ($note !== null) {
+                        $patchData['note'] = $note;
+                    }
+                    $bouncerTable->patchEntity($existingDraft, $patchData);
                     $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
                 }
             }
@@ -340,6 +347,7 @@ class BouncerBehavior extends Behavior
                 'status' => 'pending',
                 'data' => $data,
                 'original_data' => $originalData,
+                'note' => $note,
             ]);
             $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
         }
@@ -407,6 +415,7 @@ class BouncerBehavior extends Behavior
         // Store current entity state as original_data
         $originalData = json_encode($entity->toArray());
         $data = json_encode(['_delete' => true]); // Mark as deletion
+        $note = $this->getNote($options);
 
         if ($existingDraft) {
             // Check if existing draft is also a delete (same type)
@@ -415,10 +424,14 @@ class BouncerBehavior extends Behavior
 
             if ($isExistingDelete) {
                 // Update existing delete draft
-                $bouncerTable->patchEntity($existingDraft, [
+                $patchData = [
                     'data' => $data,
                     'original_data' => $originalData,
-                ]);
+                ];
+                if ($note !== null) {
+                    $patchData['note'] = $note;
+                }
+                $bouncerTable->patchEntity($existingDraft, $patchData);
                 $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
             } else {
                 // Existing draft is an edit, create new delete draft (will be superseded below)
@@ -429,6 +442,7 @@ class BouncerBehavior extends Behavior
                     'status' => 'pending',
                     'data' => $data,
                     'original_data' => $originalData,
+                    'note' => $note,
                 ]);
                 $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
             }
@@ -441,6 +455,7 @@ class BouncerBehavior extends Behavior
                 'status' => 'pending',
                 'data' => $data,
                 'original_data' => $originalData,
+                'note' => $note,
             ]);
             $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
         }
@@ -528,6 +543,28 @@ class BouncerBehavior extends Behavior
         // Check entity
         if ($entity->has($userField)) {
             return $entity->get($userField);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get note from options.
+     *
+     * @param \ArrayObject $options Options
+     *
+     * @return string|null
+     */
+    protected function getNote(ArrayObject $options): ?string
+    {
+        if (isset($options['bouncerNote'])) {
+            $note = (string)$options['bouncerNote'];
+            // Truncate to max 255 chars
+            if (mb_strlen($note) > 255) {
+                $note = mb_substr($note, 0, 255);
+            }
+
+            return $note;
         }
 
         return null;
