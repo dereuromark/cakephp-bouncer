@@ -66,16 +66,13 @@ class BouncerRecordsTable extends Table
             ->notEmptyString('source');
 
         $validator
-            ->nonNegativeInteger('primary_key')
             ->allowEmptyString('primary_key');
 
         $validator
-            ->nonNegativeInteger('user_id')
             ->requirePresence('user_id', 'create')
             ->notEmptyString('user_id');
 
         $validator
-            ->nonNegativeInteger('reviewer_id')
             ->allowEmptyString('reviewer_id');
 
         $validator
