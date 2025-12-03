@@ -118,13 +118,15 @@ class BouncerRecordsTable extends Table
     /**
      * Find pending bouncer records for a specific source and primary key.
      *
+     * Supports both integer and string (UUID) primary keys and user IDs.
+     *
      * @param string $source Table name
-     * @param int|null $primaryKey Primary key or null for new records
-     * @param int|null $userId Optional user ID filter
+     * @param string|int|null $primaryKey Primary key (int or UUID) or null for new records
+     * @param string|int|null $userId Optional user ID (int or UUID) filter
      *
      * @return \Cake\ORM\Query\SelectQuery
      */
-    public function findPendingForRecord(string $source, ?int $primaryKey, ?int $userId = null)
+    public function findPendingForRecord(string $source, int|string|null $primaryKey, int|string|null $userId = null)
     {
         $query = $this->find()
             ->where([
@@ -156,13 +158,15 @@ class BouncerRecordsTable extends Table
     /**
      * Supersede other pending records for the same source/primary_key.
      *
+     * Supports both integer and string (UUID) primary keys.
+     *
      * @param string $source Table name
-     * @param int|null $primaryKey Primary key
+     * @param string|int|null $primaryKey Primary key (int or UUID)
      * @param int $excludeId Bouncer record ID to exclude
      *
      * @return int Number of records superseded
      */
-    public function supersedeOthers(string $source, ?int $primaryKey, int $excludeId): int
+    public function supersedeOthers(string $source, int|string|null $primaryKey, int $excludeId): int
     {
         return $this->updateAll(
             ['status' => 'superseded'],

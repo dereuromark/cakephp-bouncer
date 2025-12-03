@@ -470,23 +470,25 @@ class BouncerBehavior extends Behavior
     /**
      * Get user ID from entity or options.
      *
+     * Supports both integer and string (UUID) user IDs.
+     *
      * @param \Cake\Datasource\EntityInterface $entity Entity
      * @param \ArrayObject $options Options
      *
-     * @return int|null
+     * @return string|int|null
      */
-    protected function getUserId(EntityInterface $entity, ArrayObject $options): ?int
+    protected function getUserId(EntityInterface $entity, ArrayObject $options): int|string|null
     {
         $userField = $this->getConfig('userField');
 
         // Check options first
         if (isset($options['bouncerUserId'])) {
-            return (int)$options['bouncerUserId'];
+            return $options['bouncerUserId'];
         }
 
         // Check entity
         if ($entity->has($userField)) {
-            return (int)$entity->get($userField);
+            return $entity->get($userField);
         }
 
         return null;
@@ -549,11 +551,11 @@ class BouncerBehavior extends Behavior
      * Remove a pending draft if the entity has reverted to original values.
      *
      * @param \Cake\Datasource\EntityInterface $entity The entity being saved
-     * @param int $userId The user ID
+     * @param string|int $userId The user ID (int or UUID string)
      *
      * @return void
      */
-    protected function removeRevertedDraft(EntityInterface $entity, int $userId): void
+    protected function removeRevertedDraft(EntityInterface $entity, int|string $userId): void
     {
         $primaryKeyField = $this->_table->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
@@ -567,7 +569,7 @@ class BouncerBehavior extends Behavior
 
         $existingDraft = $bouncerTable->findPendingForRecord(
             $this->_table->getRegistryAlias(),
-            (int)$primaryKey,
+            $primaryKey,
             $userId,
         )->first();
 
@@ -580,12 +582,14 @@ class BouncerBehavior extends Behavior
     /**
      * Load a pending draft for the given primary key and user.
      *
-     * @param int $primaryKey Primary key
-     * @param int $userId User ID
+     * Supports both integer and string (UUID) primary keys and user IDs.
+     *
+     * @param string|int $primaryKey Primary key (int or UUID)
+     * @param string|int $userId User ID (int or UUID)
      *
      * @return \Bouncer\Model\Entity\BouncerRecord|null
      */
-    public function loadDraft(int $primaryKey, int $userId)
+    public function loadDraft(int|string $primaryKey, int|string $userId): ?BouncerRecord
     {
         /** @var \Bouncer\Model\Table\BouncerRecordsTable $bouncerTable */
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
@@ -600,13 +604,19 @@ class BouncerBehavior extends Behavior
     /**
      * Check if a user has a pending draft for a record.
      *
-     * @param int|null $primaryKey Primary key or null for new records
-     * @param int $userId User ID
+     * Supports both integer and string (UUID) primary keys and user IDs.
+     *
+     * @param string|int|null $primaryKey Primary key (int or UUID) or null for new records
+     * @param string|int $userId User ID (int or UUID)
      *
      * @return bool
      */
-    public function hasPendingDraft(?int $primaryKey, int $userId): bool
+    public function hasPendingDraft(int|string|null $primaryKey, int|string $userId): bool
     {
+        if ($primaryKey === null) {
+            return false;
+        }
+
         /** @var \Bouncer\Model\Table\BouncerRecordsTable $bouncerTable */
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
@@ -626,12 +636,14 @@ class BouncerBehavior extends Behavior
      * Returns the draft entity if found and applied, allowing access to
      * original data via `$draft->getOriginalData()` for comparison/diff views.
      *
+     * Supports both integer and string (UUID) user IDs.
+     *
      * @param \Cake\Datasource\EntityInterface $entity Entity to overlay draft on
-     * @param int $userId User ID
+     * @param string|int $userId User ID (int or UUID)
      *
      * @return \Bouncer\Model\Entity\BouncerRecord|null The draft entity if found and applied, null otherwise
      */
-    public function withDraft(EntityInterface $entity, int $userId): ?BouncerRecord
+    public function withDraft(EntityInterface $entity, int|string $userId): ?BouncerRecord
     {
         $primaryKeyField = $this->_table->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
@@ -640,7 +652,7 @@ class BouncerBehavior extends Behavior
             return null;
         }
 
-        $draft = $this->loadDraft((int)$primaryKey, $userId);
+        $draft = $this->loadDraft($primaryKey, $userId);
 
         if (!$draft) {
             return null;
