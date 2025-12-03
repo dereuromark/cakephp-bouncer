@@ -1452,7 +1452,7 @@ class BouncerBehaviorTest extends TestCase
 
         // User reverts by submitting the original content
         $article = $this->Articles->patchEntity($article, [
-            'title' => 'Original Title',  // Different from draft, same as original = revert
+            'title' => 'Original Title', // Different from draft, same as original = revert
         ]);
 
         // Entity should be dirty (title changed from draft content to original)
