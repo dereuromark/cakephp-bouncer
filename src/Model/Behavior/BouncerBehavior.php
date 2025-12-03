@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Bouncer\Model\Behavior;
 
 use ArrayObject;
+use Bouncer\Model\Entity\BouncerRecord;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use RuntimeException;
 
 /**
  * Bouncer Behavior
@@ -459,7 +461,7 @@ class BouncerBehavior extends Behavior
 
         $encoded = json_encode($data);
         if ($encoded === false) {
-            throw new \RuntimeException('Failed to encode entity data');
+            throw new RuntimeException('Failed to encode entity data');
         }
 
         return $encoded;
@@ -621,24 +623,27 @@ class BouncerBehavior extends Behavior
      * Convenience method that loads a pending draft for the given user
      * and overlays the draft data onto the entity for display/editing.
      *
+     * Returns the draft entity if found and applied, allowing access to
+     * original data via `$draft->getOriginalData()` for comparison/diff views.
+     *
      * @param \Cake\Datasource\EntityInterface $entity Entity to overlay draft on
      * @param int $userId User ID
      *
-     * @return bool True if draft was found and applied, false otherwise
+     * @return \Bouncer\Model\Entity\BouncerRecord|null The draft entity if found and applied, null otherwise
      */
-    public function withDraft(EntityInterface $entity, int $userId): bool
+    public function withDraft(EntityInterface $entity, int $userId): ?BouncerRecord
     {
         $primaryKeyField = $this->_table->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
 
         if (!$primaryKey) {
-            return false;
+            return null;
         }
 
         $draft = $this->loadDraft((int)$primaryKey, $userId);
 
         if (!$draft) {
-            return false;
+            return null;
         }
 
         // Overlay draft data onto the entity
@@ -646,12 +651,12 @@ class BouncerBehavior extends Behavior
 
         // Don't overlay delete drafts - they only contain {_delete: true}
         if (isset($draftData['_delete']) && $draftData['_delete'] === true) {
-            return false;
+            return null;
         }
 
         $this->_table->patchEntity($entity, $draftData);
 
-        return true;
+        return $draft;
     }
 
     /**

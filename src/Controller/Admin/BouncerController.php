@@ -6,6 +6,9 @@ namespace Bouncer\Controller\Admin;
 
 use App\Controller\AppController;
 use Cake\Event\EventInterface;
+use DateTime;
+use Exception;
+use RuntimeException;
 
 /**
  * Bouncer Controller
@@ -93,7 +96,7 @@ class BouncerController extends AppController
             try {
                 $sourceTable = $this->fetchTable($bouncerRecord->source);
                 $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->Flash->warning('The original record no longer exists.');
             }
         }
@@ -140,7 +143,7 @@ class BouncerController extends AppController
                 $entity = $behavior->applyApprovedChanges($bouncerRecord);
 
                 if (!$entity) {
-                    throw new \RuntimeException('Failed to apply changes to ' . $bouncerRecord->source);
+                    throw new RuntimeException('Failed to apply changes to ' . $bouncerRecord->source);
                 }
 
                 $primaryKeyField = $sourceTable->getPrimaryKey();
@@ -150,18 +153,18 @@ class BouncerController extends AppController
                 $this->BouncerRecords->patchEntity($bouncerRecord, [
                     'status' => 'approved',
                     'reviewer_id' => $this->request->getAttribute('identity')?->getIdentifier(),
-                    'reviewed' => new \DateTime(),
+                    'reviewed' => new DateTime(),
                     'reason' => $this->request->getData('reason'),
                     'primary_key' => $primaryKeyValue, // Set for new records
                 ]);
 
                 if (!$this->BouncerRecords->save($bouncerRecord)) {
-                    throw new \RuntimeException('Failed to update bouncer record.');
+                    throw new RuntimeException('Failed to update bouncer record.');
                 }
             });
 
             $this->Flash->success('Changes have been approved and published.');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->Flash->error('Failed to approve changes: ' . $e->getMessage());
 
             return $this->redirect(['action' => 'view', $id]);
@@ -192,7 +195,7 @@ class BouncerController extends AppController
         $this->BouncerRecords->patchEntity($bouncerRecord, [
             'status' => 'rejected',
             'reviewer_id' => $this->request->getAttribute('identity')?->getIdentifier(),
-            'reviewed' => new \DateTime(),
+            'reviewed' => new DateTime(),
             'reason' => $this->request->getData('reason'),
         ]);
 
