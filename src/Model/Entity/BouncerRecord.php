@@ -18,6 +18,7 @@ use Cake\ORM\Entity;
  * @property string $data
  * @property string|null $original_data
  * @property string|null $note
+ * @property \Cake\I18n\DateTime|null $original_modified
  * @property string|null $reason
  * @property \Cake\I18n\DateTime|null $reviewed
  * @property \Cake\I18n\DateTime|null $created
@@ -39,6 +40,7 @@ class BouncerRecord extends Entity
         'data' => true,
         'original_data' => true,
         'note' => true,
+        'original_modified' => true,
         'reason' => true,
         'reviewed' => true,
         'created' => true,
@@ -133,5 +135,28 @@ class BouncerRecord extends Entity
         $data = $this->getData();
 
         return isset($data['_delete']) && $data['_delete'] === true;
+    }
+
+    /**
+     * Check if original_modified field is available (migration was run).
+     *
+     * @return bool
+     */
+    public function hasOriginalModified(): bool
+    {
+        return $this->has('original_modified');
+    }
+
+    /**
+     * Check if this draft may be stale (source record could have been modified).
+     *
+     * This only indicates the field is set - actual staleness must be checked
+     * by comparing with the current source record.
+     *
+     * @return bool
+     */
+    public function canDetectStaleness(): bool
+    {
+        return $this->hasOriginalModified() && $this->original_modified !== null;
     }
 }

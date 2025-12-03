@@ -90,18 +90,161 @@ class BouncerController extends AppController
 
         // Get the current published version for comparison (if edit)
         $currentRecord = null;
+        $conflict = null;
+
         if ($bouncerRecord->isEditProposal()) {
             try {
                 $sourceTable = $this->fetchTable($bouncerRecord->source);
                 $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
+
+                // Check for staleness on-demand (only for pending records)
+                if ($bouncerRecord->isPending() && $bouncerRecord->canDetectStaleness()) {
+                    $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+                    if ($currentModified && $currentModified > $bouncerRecord->original_modified) {
+                        // Stale! Build 3-way diff
+                        $conflict = $this->buildThreeWayDiff(
+                            $bouncerRecord->getOriginalData(),
+                            $currentRecord->toArray(),
+                            $bouncerRecord->getData(),
+                        );
+                    }
+                }
             } catch (Exception $e) {
                 $this->Flash->warning('The original record no longer exists.');
             }
         }
 
-        $this->set(compact('bouncerRecord', 'currentRecord'));
+        $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
 
         return null;
+    }
+
+    /**
+     * Resolve method - 3-way merge interface for conflicts
+     *
+     * @param int|null $id Bouncer Record id.
+     *
+     * @return \Cake\Http\Response|null
+     */
+    public function resolve(?int $id = null)
+    {
+        $bouncerRecord = $this->BouncerRecords->get($id);
+
+        if (!$bouncerRecord->isPending()) {
+            $this->Flash->error('This record has already been processed.');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        if (!$bouncerRecord->isEditProposal()) {
+            $this->Flash->warning('Conflict resolution is only available for edit proposals.');
+
+            return $this->redirect(['action' => 'view', $id]);
+        }
+
+        // Load current record and check for conflict
+        try {
+            $sourceTable = $this->fetchTable($bouncerRecord->source);
+            $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
+        } catch (Exception $e) {
+            $this->Flash->error('The original record no longer exists.');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        // Check if there's actually a conflict
+        $hasConflict = false;
+        if ($bouncerRecord->canDetectStaleness()) {
+            $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+            $hasConflict = $currentModified && $currentModified > $bouncerRecord->original_modified;
+        }
+
+        if (!$hasConflict) {
+            $this->Flash->info('No conflict detected. You can proceed with normal approval.');
+
+            return $this->redirect(['action' => 'view', $id]);
+        }
+
+        $conflict = $this->buildThreeWayDiff(
+            $bouncerRecord->getOriginalData(),
+            $currentRecord->toArray(),
+            $bouncerRecord->getData(),
+        );
+
+        if ($this->request->is(['post', 'put'])) {
+            $mergedData = $this->request->getData('merged');
+
+            if ($mergedData) {
+                // Update bouncer record with merged data
+                $bouncerRecord->data = json_encode($mergedData, JSON_THROW_ON_ERROR);
+                // Update original_modified to current time to mark conflict as resolved
+                $bouncerRecord->original_modified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+                // Update original_data to current state
+                $bouncerRecord->original_data = json_encode($currentRecord->toArray(), JSON_THROW_ON_ERROR);
+
+                if ($this->BouncerRecords->save($bouncerRecord)) {
+                    $this->Flash->success('Conflict resolved. Ready for final approval.');
+
+                    return $this->redirect(['action' => 'view', $id]);
+                }
+
+                $this->Flash->error('Failed to save merged changes.');
+            }
+        }
+
+        $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
+
+        return null;
+    }
+
+    /**
+     * Build a 3-way diff for conflict resolution.
+     *
+     * @param array<string, mixed> $original Original data when draft was created
+     * @param array<string, mixed> $current Current live data
+     * @param array<string, mixed> $proposed Proposed changes in draft
+     *
+     * @return array{original: array, current: array, proposed: array, conflicts: array<string, array>, hasConflicts: bool}
+     */
+    protected function buildThreeWayDiff(array $original, array $current, array $proposed): array
+    {
+        $conflicts = [];
+        $allFields = array_unique(array_merge(
+            array_keys($original),
+            array_keys($current),
+            array_keys($proposed),
+        ));
+
+        // Filter out internal fields
+        $allFields = array_filter($allFields, function ($field) {
+            return !in_array($field, ['created', 'modified', 'id', '_delete'], true);
+        });
+
+        foreach ($allFields as $field) {
+            $origValue = $original[$field] ?? null;
+            $currValue = $current[$field] ?? null;
+            $propValue = $proposed[$field] ?? null;
+
+            // Conflict: both current and proposed changed from original, differently
+            $currentChanged = $origValue !== $currValue;
+            $proposedChanged = $origValue !== $propValue;
+
+            if ($currentChanged && $proposedChanged && $currValue !== $propValue) {
+                $conflicts[$field] = [
+                    'original' => $origValue,
+                    'current' => $currValue,
+                    'proposed' => $propValue,
+                ];
+            }
+        }
+
+        return [
+            'original' => $original,
+            'current' => $current,
+            'proposed' => $proposed,
+            'conflicts' => $conflicts,
+            'hasConflicts' => (bool)$conflicts,
+        ];
     }
 
     /**

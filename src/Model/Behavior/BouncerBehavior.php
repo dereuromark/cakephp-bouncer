@@ -246,10 +246,13 @@ class BouncerBehavior extends Behavior
         $data = $this->serializeEntity($entity);
         $originalData = null;
 
+        $originalModified = null;
         if (!$isNew) {
             // For edits, store the current state as original
             $original = $this->_table->get($primaryKey);
             $originalData = $this->serializeEntity($original);
+            // Capture modification timestamp for conflict detection
+            $originalModified = $original->get('modified') ?? $original->get('created');
         }
 
         $note = $this->getNote($options);
@@ -261,7 +264,7 @@ class BouncerBehavior extends Behavior
 
             if ($isExistingDelete) {
                 // Existing draft is a delete, create new edit draft (will be superseded below)
-                $bouncerRecord = $bouncerTable->newEntity([
+                $bouncerData = [
                     'source' => $source,
                     'primary_key' => $primaryKey,
                     'user_id' => $userId,
@@ -269,7 +272,11 @@ class BouncerBehavior extends Behavior
                     'data' => $data,
                     'original_data' => $originalData,
                     'note' => $note,
-                ]);
+                ];
+                if ($originalModified !== null) {
+                    $bouncerData['original_modified'] = $originalModified;
+                }
+                $bouncerRecord = $bouncerTable->newEntity($bouncerData);
                 $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
             } else {
                 // Check if the new data matches the original data (effectively reverted)
@@ -310,6 +317,9 @@ class BouncerBehavior extends Behavior
                     if ($note !== null) {
                         $patchData['note'] = $note;
                     }
+                    if ($originalModified !== null) {
+                        $patchData['original_modified'] = $originalModified;
+                    }
                     $bouncerTable->patchEntity($existingDraft, $patchData);
                     $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
                 }
@@ -340,7 +350,7 @@ class BouncerBehavior extends Behavior
             }
 
             // Create new draft
-            $bouncerRecord = $bouncerTable->newEntity([
+            $bouncerData = [
                 'source' => $source,
                 'primary_key' => $primaryKey,
                 'user_id' => $userId,
@@ -348,7 +358,11 @@ class BouncerBehavior extends Behavior
                 'data' => $data,
                 'original_data' => $originalData,
                 'note' => $note,
-            ]);
+            ];
+            if ($originalModified !== null) {
+                $bouncerData['original_modified'] = $originalModified;
+            }
+            $bouncerRecord = $bouncerTable->newEntity($bouncerData);
             $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
         }
 
@@ -416,6 +430,8 @@ class BouncerBehavior extends Behavior
         $originalData = json_encode($entity->toArray());
         $data = json_encode(['_delete' => true]); // Mark as deletion
         $note = $this->getNote($options);
+        // Capture modification timestamp for conflict detection
+        $originalModified = $entity->get('modified') ?? $entity->get('created');
 
         if ($existingDraft) {
             // Check if existing draft is also a delete (same type)
@@ -431,11 +447,14 @@ class BouncerBehavior extends Behavior
                 if ($note !== null) {
                     $patchData['note'] = $note;
                 }
+                if ($originalModified !== null) {
+                    $patchData['original_modified'] = $originalModified;
+                }
                 $bouncerTable->patchEntity($existingDraft, $patchData);
                 $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
             } else {
                 // Existing draft is an edit, create new delete draft (will be superseded below)
-                $bouncerRecord = $bouncerTable->newEntity([
+                $bouncerData = [
                     'source' => $source,
                     'primary_key' => $primaryKey,
                     'user_id' => $userId,
@@ -443,12 +462,16 @@ class BouncerBehavior extends Behavior
                     'data' => $data,
                     'original_data' => $originalData,
                     'note' => $note,
-                ]);
+                ];
+                if ($originalModified !== null) {
+                    $bouncerData['original_modified'] = $originalModified;
+                }
+                $bouncerRecord = $bouncerTable->newEntity($bouncerData);
                 $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
             }
         } else {
             // Create new delete bouncer record
-            $bouncerRecord = $bouncerTable->newEntity([
+            $bouncerData = [
                 'source' => $source,
                 'primary_key' => $primaryKey,
                 'user_id' => $userId,
@@ -456,7 +479,11 @@ class BouncerBehavior extends Behavior
                 'data' => $data,
                 'original_data' => $originalData,
                 'note' => $note,
-            ]);
+            ];
+            if ($originalModified !== null) {
+                $bouncerData['original_modified'] = $originalModified;
+            }
+            $bouncerRecord = $bouncerTable->newEntity($bouncerData);
             $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
         }
 
