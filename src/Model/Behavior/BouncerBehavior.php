@@ -620,7 +620,7 @@ class BouncerBehavior extends Behavior
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
         $existingDraft = $bouncerTable->findPendingForRecord(
-            $this->_table->getRegistryAlias(),
+            $this->_table->getAlias(),
             $primaryKey,
             $userId,
         )->first();
