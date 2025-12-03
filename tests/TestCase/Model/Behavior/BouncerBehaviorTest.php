@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bouncer\Test\TestCase\Model\Behavior;
 
+use Bouncer\Model\Entity\BouncerRecord;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\TestSuite\TestCase;
 
@@ -689,16 +690,22 @@ class BouncerBehaviorTest extends TestCase
         $this->assertEquals('Original Title', $article->title);
         $this->assertEquals('Original Body', $article->body);
 
-        // Apply draft
-        $hasDraft = $this->Articles->getBehavior('Bouncer')->withDraft($article, 1);
+        // Apply draft - now returns the draft entity instead of bool
+        $draft = $this->Articles->getBehavior('Bouncer')->withDraft($article, 1);
 
-        $this->assertTrue($hasDraft);
+        $this->assertNotNull($draft);
+        $this->assertInstanceOf(BouncerRecord::class, $draft);
         $this->assertEquals('Draft Title', $article->title);
         $this->assertEquals('Draft Body', $article->body);
+
+        // Verify we can access original data from the draft
+        $originalData = $draft->getOriginalData();
+        $this->assertEquals('Original Title', $originalData['title']);
+        $this->assertEquals('Original Body', $originalData['body']);
     }
 
     /**
-     * Test withDraft() returns false when no draft exists
+     * Test withDraft() returns null when no draft exists
      *
      * @return void
      */
@@ -719,9 +726,9 @@ class BouncerBehaviorTest extends TestCase
 
         // Try to apply draft when none exists
         $article = $this->Articles->get($article->id);
-        $hasDraft = $this->Articles->getBehavior('Bouncer')->withDraft($article, 1);
+        $draft = $this->Articles->getBehavior('Bouncer')->withDraft($article, 1);
 
-        $this->assertFalse($hasDraft);
+        $this->assertNull($draft);
         $this->assertEquals('Test Title', $article->title);
         $this->assertEquals('Test Body', $article->body);
     }
