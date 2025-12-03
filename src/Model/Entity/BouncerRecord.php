@@ -11,9 +11,9 @@ use Cake\ORM\Entity;
  *
  * @property int $id
  * @property string $source
- * @property int|null $primary_key
- * @property int $user_id
- * @property int|null $reviewer_id
+ * @property int|string|null $primary_key
+ * @property int|string $user_id
+ * @property int|string|null $reviewer_id
  * @property string $status
  * @property string $data
  * @property string|null $original_data
