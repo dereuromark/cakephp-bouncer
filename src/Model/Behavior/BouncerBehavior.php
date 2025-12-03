@@ -61,6 +61,13 @@ class BouncerBehavior extends Behavior
     protected bool $bouncerFailed = false;
 
     /**
+     * Tracks if the last save operation resulted in a draft being removed (reverted to original).
+     *
+     * @var bool
+     */
+    protected bool $draftRemoved = false;
+
+    /**
      * Initialize hook.
      *
      * @param array<string, mixed> $config Configuration
@@ -88,6 +95,7 @@ class BouncerBehavior extends Behavior
         $this->wasBounced = false;
         $this->lastBouncerRecord = null;
         $this->bouncerFailed = false;
+        $this->draftRemoved = false;
 
         // Check if we should bypass bouncer
         if ($this->shouldBypass($entity, $options)) {
@@ -274,6 +282,7 @@ class BouncerBehavior extends Behavior
                 if ($isReverted && count($proposedData) > 0) {
                     // Changes reverted to original - delete the pending draft
                     $bouncerTable->delete($existingDraft);
+                    $this->draftRemoved = true;
 
                     // Commit the transaction to persist the delete
                     $connection = $bouncerTable->getConnection();
@@ -572,6 +581,19 @@ class BouncerBehavior extends Behavior
     }
 
     /**
+     * Check if the last save operation resulted in a draft being removed.
+     *
+     * This happens when the user reverts their changes back to the original content,
+     * effectively cancelling their proposal.
+     *
+     * @return bool
+     */
+    public function wasDraftRemoved(): bool
+    {
+        return $this->draftRemoved;
+    }
+
+    /**
      * Remove a pending draft if the entity has reverted to original values.
      *
      * @param \Cake\Datasource\EntityInterface $entity The entity being saved
@@ -600,6 +622,7 @@ class BouncerBehavior extends Behavior
         if ($existingDraft) {
             // Draft exists and entity has no changes - remove the draft
             $bouncerTable->delete($existingDraft);
+            $this->draftRemoved = true;
         }
     }
 
