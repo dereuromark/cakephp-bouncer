@@ -4,7 +4,92 @@
  * @var \Bouncer\Model\Entity\BouncerRecord $bouncerRecord
  * @var \Cake\Datasource\EntityInterface|null $currentRecord
  */
+
+use Bouncer\Lib\DiffLib;
+use Cake\I18n\DateTime;
+
+/**
+ * Convert any value to a comparable string.
+ *
+ * @param mixed $value
+ * @return string
+ */
+$valueToString = function (mixed $value): string {
+    if ($value === null) {
+        return '';
+    }
+    if ($value instanceof DateTime) {
+        return $value->format('Y-m-d H:i:s');
+    }
+    if (is_object($value) && method_exists($value, '__toString')) {
+        return (string)$value;
+    }
+    if (is_scalar($value)) {
+        return (string)$value;
+    }
+
+    return json_encode($value) ?: '';
+};
+
+// Pre-calculate diffs for long text fields
+$diffs = [];
+if ($bouncerRecord->isEditProposal() && $currentRecord) {
+    $proposedData = $bouncerRecord->getData();
+    $currentData = $currentRecord->toArray();
+    $allFields = array_unique(array_merge(array_keys($currentData), array_keys($proposedData)));
+    sort($allFields);
+
+    $diffLib = new DiffLib();
+    $diffLib->contextLines = 2;
+
+    foreach ($allFields as $field) {
+        if (in_array($field, ['created', 'modified', 'id']) || str_starts_with($field, '_')) {
+            continue;
+        }
+        if (!array_key_exists($field, $proposedData)) {
+            continue;
+        }
+
+        $currentValue = $currentData[$field] ?? null;
+        $proposedValue = $proposedData[$field] ?? null;
+
+        $currentStr = $valueToString($currentValue);
+        $proposedStr = $valueToString($proposedValue);
+
+        if ($currentStr === $proposedStr) {
+            continue;
+        }
+
+        $isLongText = strlen($currentStr) > 100 || strlen($proposedStr) > 100
+            || str_contains($currentStr, "\n") || str_contains($proposedStr, "\n");
+
+        $diffs[$field] = [
+            'currentStr' => $currentStr,
+            'proposedStr' => $proposedStr,
+            'isLongText' => $isLongText,
+            'inline' => $isLongText ? $diffLib->compare($currentStr, $proposedStr) : null,
+            'sideBySide' => $isLongText ? $diffLib->compareSideBySide($currentStr, $proposedStr) : null,
+        ];
+    }
+}
 ?>
+<style>
+.diff-wrapper { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 13px; }
+.diff-wrapper th, .diff-wrapper td { padding: 4px 8px; border: 1px solid #dee2e6; vertical-align: top; }
+.diff-wrapper .line-num { width: 40px; background: #f8f9fa; color: #6c757d; text-align: right; }
+.diff-wrapper .sign { width: 20px; text-align: center; font-weight: bold; }
+.diff-wrapper tr.unchanged td { background: #fff; }
+.diff-wrapper tr.added td { background: #d4edda; }
+.diff-wrapper tr.removed td { background: #f8d7da; }
+.diff-wrapper tr.separator td { background: #f8f9fa; font-style: italic; }
+.diff-wrapper ins { background: #c3e6cb; text-decoration: none; padding: 1px 2px; }
+.diff-wrapper del { background: #f5c6cb; text-decoration: line-through; padding: 1px 2px; }
+/* Side-by-side specific */
+.diff-side-by-side th:nth-child(2), .diff-side-by-side td:nth-child(2) { width: 45%; }
+.diff-side-by-side th:nth-child(4), .diff-side-by-side td:nth-child(4) { width: 45%; }
+.diff-side-by-side tr.changed td:nth-child(2) { background: #f8d7da; }
+.diff-side-by-side tr.changed td:nth-child(4) { background: #d4edda; }
+</style>
 <div class="bouncer view content">
     <h1><?= __('Review Proposed Changes') ?></h1>
 
@@ -83,47 +168,70 @@
     </div>
 
     <div class="card mb-3">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <strong><?= __('Proposed Changes') ?></strong>
+            <?php if ($bouncerRecord->isEditProposal() && $currentRecord && $diffs) { ?>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary active" id="btn-inline-diff">Inline</button>
+                <button type="button" class="btn btn-outline-secondary" id="btn-side-diff">Side-by-side</button>
+            </div>
+            <?php } ?>
         </div>
         <div class="card-body">
             <?php if ($bouncerRecord->isEditProposal() && $currentRecord) { ?>
-                <h5><?= __('Changes (Current → Proposed)') ?></h5>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Field</th>
-                            <th>Current Value</th>
-                            <th>Proposed Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $proposedData = $bouncerRecord->getData();
-                        $currentData = $currentRecord->toArray();
-                        $allFields = array_unique(array_merge(array_keys($currentData), array_keys($proposedData)));
-                        sort($allFields);
-
-                        foreach ($allFields as $field) {
-                            if (in_array($field, ['created', 'modified'])) {
-                                continue;
-                            }
-
-                            $currentValue = $currentData[$field] ?? null;
-                            $proposedValue = $proposedData[$field] ?? null;
-
-                            if ($currentValue == $proposedValue) {
-                                continue; // Skip unchanged fields
-                            }
-                            ?>
-                            <tr>
-                                <td><strong><?= h($field) ?></strong></td>
-                                <td><?= h($currentValue) ?></td>
-                                <td class="table-warning"><strong><?= h($proposedValue) ?></strong></td>
-                            </tr>
-                        <?php } ?>
-                    </tbody>
-                </table>
+                <div id="inline-diff-view">
+                <?php foreach ($diffs as $field => $diff) { ?>
+                    <div class="card mb-3">
+                        <div class="card-header bg-light py-2">
+                            <strong><?= h($field) ?></strong>
+                        </div>
+                        <div class="card-body p-2">
+                            <?php if ($diff['isLongText']) { ?>
+                                <?= $diff['inline'] ?>
+                            <?php } else { ?>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span class="text-muted"><?= __('Current:') ?></span>
+                                        <div class="p-2 bg-light border rounded"><del><?= h($diff['currentStr']) ?></del></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="text-muted"><?= __('Proposed:') ?></span>
+                                        <div class="p-2 bg-warning border rounded"><ins><strong><?= h($diff['proposedStr']) ?></strong></ins></div>
+                                    </div>
+                                </div>
+                            <?php } ?>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <div id="side-diff-view" style="display: none;">
+                <?php foreach ($diffs as $field => $diff) { ?>
+                    <div class="card mb-3">
+                        <div class="card-header bg-light py-2">
+                            <strong><?= h($field) ?></strong>
+                        </div>
+                        <div class="card-body p-2">
+                            <?php if ($diff['isLongText']) { ?>
+                                <?= $diff['sideBySide'] ?>
+                            <?php } else { ?>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span class="text-muted"><?= __('Current:') ?></span>
+                                        <div class="p-2 bg-light border rounded"><del><?= h($diff['currentStr']) ?></del></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="text-muted"><?= __('Proposed:') ?></span>
+                                        <div class="p-2 bg-warning border rounded"><ins><strong><?= h($diff['proposedStr']) ?></strong></ins></div>
+                                    </div>
+                                </div>
+                            <?php } ?>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <?php if (!$diffs) { ?>
+                    <p class="text-muted"><?= __('No changes detected') ?></p>
+                <?php } ?>
             <?php } else { ?>
                 <h5><?= __('New Record Data') ?></h5>
                 <table class="table table-bordered">
@@ -135,7 +243,7 @@
                     </thead>
                     <tbody>
                         <?php foreach ($bouncerRecord->getData() as $field => $value) { ?>
-                            <?php if (in_array($field, ['created', 'modified'])) {
+                            <?php if (in_array($field, ['created', 'modified']) || str_starts_with($field, '_')) {
                                 continue;
                             } ?>
                             <tr>
@@ -191,3 +299,28 @@
         <?= $this->Html->link(__('Back to List'), ['action' => 'index'], ['class' => 'btn btn-secondary']) ?>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnInline = document.getElementById('btn-inline-diff');
+    const btnSide = document.getElementById('btn-side-diff');
+    const inlineView = document.getElementById('inline-diff-view');
+    const sideView = document.getElementById('side-diff-view');
+
+    if (btnInline && btnSide) {
+        btnInline.addEventListener('click', function() {
+            inlineView.style.display = 'block';
+            sideView.style.display = 'none';
+            btnInline.classList.add('active');
+            btnSide.classList.remove('active');
+        });
+
+        btnSide.addEventListener('click', function() {
+            inlineView.style.display = 'none';
+            sideView.style.display = 'block';
+            btnSide.classList.add('active');
+            btnInline.classList.remove('active');
+        });
+    }
+});
+</script>

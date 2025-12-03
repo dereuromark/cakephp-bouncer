@@ -756,6 +756,13 @@ class BouncerBehavior extends Behavior
             return null;
         }
 
+        // Include the primary key in draft data to signal to beforeMarshal
+        // that this is an existing entity, not a new one
+        $primaryKeyField = $this->_table->getPrimaryKey();
+        if (is_string($primaryKeyField)) {
+            $draftData[$primaryKeyField] = $primaryKey;
+        }
+
         $this->_table->patchEntity($entity, $draftData);
 
         return $draft;
