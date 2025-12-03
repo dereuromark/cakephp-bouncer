@@ -256,4 +256,36 @@ The \`bouncer_records\` table stores:
 - \`data\`: JSON serialized proposed changes
 - \`original_data\`: JSON serialized original data (for edits)
 - \`reason\`: Approval/rejection note
-- Timestamps: \`created\`, \`modified\`, \`reviewed\`
+- Timestamps: `created`, `modified`, `reviewed`
+
+### UUID Support
+
+If your application uses UUIDs for primary keys or user IDs, you need to copy and adjust the migration on the app side.
+
+1. Copy the migration from `vendor/dereuromark/cakephp-bouncer/config/Migrations/` to your app's `config/Migrations/` folder
+2. Adjust the field types as needed:
+
+```php
+// For UUID primary keys in your source tables
+->addColumn('primary_key', 'uuid', [
+    'default' => null,
+    'null' => true,
+    'comment' => 'ID of record in source table, NULL for new records',
+])
+
+// For UUID user IDs
+->addColumn('user_id', 'uuid', [
+    'default' => null,
+    'null' => false,
+    'comment' => 'User who proposed the change',
+])
+->addColumn('reviewer_id', 'uuid', [
+    'default' => null,
+    'null' => true,
+    'comment' => 'Admin who approved/rejected',
+])
+```
+
+3. Run the migration from your app: `bin/cake migrations migrate`
+
+**Note:** Do not run the plugin migration directly if you need UUID support - use your adjusted app migration instead.
