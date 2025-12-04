@@ -634,4 +634,441 @@ class BouncerControllerTest extends TestCase
 
         $this->assertFalse($this->BouncerRecords->exists(['id' => $id]));
     }
+
+    /**
+     * Test approve auto-merges stale record with non-overlapping changes
+     *
+     * @return void
+     */
+    public function testApproveAutoMergesStaleRecordNonOverlapping(): void
+    {
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+        $originalModified = $article->modified;
+
+        // Simulate concurrent edit - change body only
+        $article->body = 'Current Body Changed';
+        $article->modified = new DateTime('+1 hour');
+        $this->Articles->save($article);
+
+        // Create bouncer record that changes title only (non-overlapping)
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Proposed Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Original Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'approve', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'index']);
+        $this->assertFlashMessage('Changes have been approved and published.');
+
+        // Verify article has BOTH changes - proposed title AND current body
+        $updatedArticle = $this->Articles->get($article->id);
+        $this->assertEquals('Proposed Title', $updatedArticle->title);
+        $this->assertEquals('Current Body Changed', $updatedArticle->body);
+    }
+
+    /**
+     * Test approve auto-merges stale record with string-level non-overlapping changes
+     *
+     * @return void
+     */
+    public function testApproveAutoMergesStaleRecordStringLevel(): void
+    {
+        // Create an article with text that will be modified in different places
+        $article = $this->Articles->newEntity([
+            'title' => 'Hello World Test',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+        $originalModified = $article->modified;
+
+        // Concurrent edit - change start of title
+        $article->title = 'Hi World Test';
+        $article->modified = new DateTime('+1 hour');
+        $this->Articles->save($article);
+
+        // Bouncer record changes end of title (non-overlapping within same field)
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Hello World Test!', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Hello World Test', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'approve', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'index']);
+        $this->assertFlashMessage('Changes have been approved and published.');
+
+        // Verify article has merged title: "Hi World Test!"
+        $updatedArticle = $this->Articles->get($article->id);
+        $this->assertEquals('Hi World Test!', $updatedArticle->title);
+    }
+
+    /**
+     * Test approve redirects to resolve when there are conflicts
+     *
+     * @return void
+     */
+    public function testApproveRedirectsToResolveOnConflict(): void
+    {
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+        $originalModified = $article->modified;
+
+        // Concurrent edit - change title
+        $article->title = 'Current Title';
+        $article->modified = new DateTime('+1 hour');
+        $this->Articles->save($article);
+
+        // Bouncer record also changes title (overlapping - conflict!)
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Proposed Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Original Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'approve', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'resolve', $bouncerRecord->id]);
+        $this->assertFlashMessage('This record has unresolved conflicts. Please resolve them first.');
+
+        // Verify article was NOT changed
+        $unchangedArticle = $this->Articles->get($article->id);
+        $this->assertEquals('Current Title', $unchangedArticle->title);
+
+        // Verify bouncer record is still pending
+        $unchangedRecord = $this->BouncerRecords->get($bouncerRecord->id);
+        $this->assertEquals('pending', $unchangedRecord->status);
+    }
+
+    /**
+     * Test approve works normally for non-stale records
+     *
+     * @return void
+     */
+    public function testApproveNonStaleRecordWorksNormally(): void
+    {
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+
+        // Create bouncer record with same original_modified (not stale)
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Proposed Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Original Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_modified' => $article->modified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'approve', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'index']);
+        $this->assertFlashMessage('Changes have been approved and published.');
+
+        $updatedArticle = $this->Articles->get($article->id);
+        $this->assertEquals('Proposed Title', $updatedArticle->title);
+    }
+
+    /**
+     * Test approve works for records without original_modified (legacy)
+     *
+     * @return void
+     */
+    public function testApproveLegacyRecordWithoutOriginalModified(): void
+    {
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+
+        // Create bouncer record WITHOUT original_modified (legacy record)
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Proposed Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Original Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_modified' => null,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'approve', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'index']);
+        $this->assertFlashMessage('Changes have been approved and published.');
+
+        $updatedArticle = $this->Articles->get($article->id);
+        $this->assertEquals('Proposed Title', $updatedArticle->title);
+    }
+
+    /**
+     * Test approve preserves fields not in proposal when auto-merging
+     *
+     * @return void
+     */
+    public function testApprovePreservesUnproposedFieldsOnMerge(): void
+    {
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+        $originalModified = $article->modified;
+
+        // Concurrent edit - change body
+        $article->body = 'Current Body Changed';
+        $article->modified = new DateTime('+1 hour');
+        $this->Articles->save($article);
+
+        // Bouncer record only proposes title change (body not in proposal)
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Proposed Title', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Original Title', 'user_id' => 1]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'approve', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'index']);
+
+        // Body should remain as current (not reverted to original)
+        $updatedArticle = $this->Articles->get($article->id);
+        $this->assertEquals('Proposed Title', $updatedArticle->title);
+        $this->assertEquals('Current Body Changed', $updatedArticle->body);
+    }
+
+    /**
+     * Test resolve shows auto-merged fields separately from conflicts
+     *
+     * @return void
+     */
+    public function testResolveShowsAutoMergedAndConflictsSeparately(): void
+    {
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+        $originalModified = $article->modified;
+
+        // Concurrent edit - change both title and body
+        $article->title = 'Current Title';
+        $article->body = 'Current Body';
+        $article->modified = new DateTime('+1 hour');
+        $this->Articles->save($article);
+
+        // Bouncer record changes title (conflict) but not body
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Proposed Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Original Title', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'resolve', $bouncerRecord->id]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('CONFLICT');
+        $this->assertResponseContains('title');
+    }
+
+    /**
+     * Test view page shows merged diff for stale records
+     *
+     * @return void
+     */
+    public function testViewShowsMergedDiffForStaleRecords(): void
+    {
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Hello World',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+        $originalModified = $article->modified;
+
+        // Concurrent edit - change start
+        $article->title = 'Hi World';
+        $article->modified = new DateTime('+1 hour');
+        $this->Articles->save($article);
+
+        // Bouncer record changes end (non-overlapping)
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Hello World!', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Hello World', 'body' => 'Original Body', 'user_id' => 1]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'view', $bouncerRecord->id]);
+
+        $this->assertResponseOk();
+        // Should show the merged result "Hi World!" in the diff
+        $this->assertResponseContains('Hi World!');
+    }
+
+    /**
+     * Test resolve post only includes proposed fields in merged data
+     *
+     * @return void
+     */
+    public function testResolvePostOnlyIncludesProposedFields(): void
+    {
+        // Create an article
+        $article = $this->Articles->newEntity([
+            'title' => 'Original Title',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+        $originalModified = $article->modified;
+
+        // Concurrent edit
+        $article->title = 'Current Title';
+        $article->modified = new DateTime('+1 hour');
+        $this->Articles->save($article);
+
+        // Bouncer record with conflict
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Proposed Title', 'user_id' => 1]),
+            'original_data' => json_encode(['title' => 'Original Title', 'user_id' => 1]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        // Post merged data - only title should be saved, not body
+        $this->post(
+            ['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'resolve', $bouncerRecord->id],
+            [
+                'merged' => [
+                    'title' => 'Resolved Title',
+                    'user_id' => 1,
+                ],
+            ],
+        );
+
+        $this->assertRedirect(['action' => 'view', $bouncerRecord->id]);
+
+        // Verify only proposed fields are in data
+        $updatedRecord = $this->BouncerRecords->get($bouncerRecord->id);
+        $data = $updatedRecord->getData();
+        $this->assertEquals('Resolved Title', $data['title']);
+        $this->assertArrayNotHasKey('body', $data);
+    }
+
+    /**
+     * Test complex 3-way merge scenario with multiple fields
+     *
+     * @return void
+     */
+    public function testApproveComplexMergeScenario(): void
+    {
+        // Create an article with multiple fields
+        $article = $this->Articles->newEntity([
+            'title' => 'AAAA BBBB CCCC',
+            'body' => 'Line 1 here',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article);
+        $originalModified = $article->modified;
+
+        // Concurrent edit - change middle of title, end of body
+        $article->title = 'AAAA XXXX CCCC';
+        $article->body = 'Line 1 here - updated';
+        $article->modified = new DateTime('+1 hour');
+        $this->Articles->save($article);
+
+        // Bouncer proposes changes to end of title, start of body (non-overlapping)
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode([
+                'title' => 'AAAA BBBB CCCC DDDD',
+                'body' => 'New Line 1 here',
+                'user_id' => 1,
+            ]),
+            'original_data' => json_encode([
+                'title' => 'AAAA BBBB CCCC',
+                'body' => 'Line 1 here',
+                'user_id' => 1,
+            ]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'approve', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'index']);
+
+        // Verify merged result
+        $updatedArticle = $this->Articles->get($article->id);
+        // Title: current changed middle (XXXX), proposed added end (DDDD)
+        $this->assertEquals('AAAA XXXX CCCC DDDD', $updatedArticle->title);
+        // Body: proposed changed start (New), current changed end (- updated)
+        $this->assertEquals('New Line 1 here - updated', $updatedArticle->body);
+    }
 }
