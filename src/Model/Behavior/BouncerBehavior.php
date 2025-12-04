@@ -379,7 +379,10 @@ class BouncerBehavior extends Behavior
         }
 
         if (!$bouncerRecord) {
-            $this->bouncerFailed = true;
+            // Only mark as failed if the draft wasn't intentionally removed (reverted case)
+            if (!$this->draftRemoved) {
+                $this->bouncerFailed = true;
+            }
 
             return null;
         }

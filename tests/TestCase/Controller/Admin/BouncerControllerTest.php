@@ -590,6 +590,80 @@ class BouncerControllerTest extends TestCase
     }
 
     /**
+     * Test reopen method requires POST
+     *
+     * @return void
+     */
+    public function testReopenRequiresPost(): void
+    {
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => null,
+            'user_id' => 1,
+            'status' => 'rejected',
+            'data' => json_encode(['title' => 'Test']),
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'reopen', $bouncerRecord->id]);
+
+        $this->assertResponseCode(405);
+    }
+
+    /**
+     * Test reopen method only works on rejected records
+     *
+     * @return void
+     */
+    public function testReopenOnlyRejected(): void
+    {
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => null,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Test']),
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'reopen', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'index']);
+        $this->assertFlashMessage('Only rejected records can be reopened.');
+    }
+
+    /**
+     * Test reopen method works
+     *
+     * @return void
+     */
+    public function testReopenWorks(): void
+    {
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => null,
+            'user_id' => 1,
+            'status' => 'rejected',
+            'reviewer_id' => 2,
+            'reviewed' => new DateTime(),
+            'reason' => 'Not acceptable',
+            'data' => json_encode(['title' => 'Test']),
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'reopen', $bouncerRecord->id]);
+
+        $this->assertRedirect(['action' => 'view', $bouncerRecord->id]);
+        $this->assertFlashMessage('Record has been reopened for review.');
+
+        $updatedRecord = $this->BouncerRecords->get($bouncerRecord->id);
+        $this->assertEquals('pending', $updatedRecord->status);
+        $this->assertNull($updatedRecord->reviewer_id);
+        $this->assertNull($updatedRecord->reviewed);
+        $this->assertNull($updatedRecord->reason);
+    }
+
+    /**
      * Test delete method requires POST
      *
      * @return void

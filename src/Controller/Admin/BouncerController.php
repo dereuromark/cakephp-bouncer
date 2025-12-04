@@ -448,6 +448,41 @@ class BouncerController extends AppController
     }
 
     /**
+     * Reopen a rejected record - put it back to pending status.
+     *
+     * @param int|null $id Bouncer Record id.
+     *
+     * @return \Cake\Http\Response|null
+     */
+    public function reopen(?int $id = null)
+    {
+        $this->request->allowMethod(['post', 'put']);
+
+        $bouncerRecord = $this->BouncerRecords->get($id);
+
+        if ($bouncerRecord->status !== 'rejected') {
+            $this->Flash->error('Only rejected records can be reopened.');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        $this->BouncerRecords->patchEntity($bouncerRecord, [
+            'status' => 'pending',
+            'reviewer_id' => null,
+            'reviewed' => null,
+            'reason' => null,
+        ]);
+
+        if ($this->BouncerRecords->save($bouncerRecord)) {
+            $this->Flash->success('Record has been reopened for review.');
+        } else {
+            $this->Flash->error('Failed to reopen record.');
+        }
+
+        return $this->redirect(['action' => 'view', $id]);
+    }
+
+    /**
      * Delete method
      *
      * @param int|null $id Bouncer Record id.
