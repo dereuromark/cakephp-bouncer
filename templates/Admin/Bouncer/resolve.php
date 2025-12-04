@@ -186,12 +186,9 @@ $hasConflicts = !empty($conflict['conflicts']);
 
     <?php
     // Add hidden fields for non-conflicting, non-auto-merged fields
-    $allFields = array_unique(array_merge(
-        array_keys($conflict['original']),
-        array_keys($conflict['current']),
-        array_keys($conflict['proposed']),
-    ));
-    foreach ($allFields as $field) {
+    // Only include fields that were in the original proposal to avoid noise
+    $proposedFields = array_keys($conflict['proposed']);
+    foreach ($proposedFields as $field) {
         if (in_array($field, ['created', 'modified', 'id', '_delete'], true)) {
             continue;
         }
