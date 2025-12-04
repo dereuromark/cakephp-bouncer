@@ -43,7 +43,8 @@ class BouncerHelper extends Helper
             return [];
         }
 
-        $proposedData = $bouncerRecord->getData();
+        // Use merged data if available (for stale records with auto-merge)
+        $proposedData = $bouncerRecord->getMergedData();
         $currentData = $currentRecord->toArray();
         $allFields = array_unique(array_merge(array_keys($currentData), array_keys($proposedData)));
         sort($allFields);

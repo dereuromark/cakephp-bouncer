@@ -138,6 +138,11 @@ class BouncerRecord extends Entity
     }
 
     /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $_mergedData = null;
+
+    /**
      * Check if original_modified field is available (migration was run).
      *
      * @return bool
@@ -145,6 +150,38 @@ class BouncerRecord extends Entity
     public function hasOriginalModified(): bool
     {
         return $this->has('original_modified');
+    }
+
+    /**
+     * Set merged data for display purposes (not persisted).
+     *
+     * @param array<string, mixed> $mergedData
+     *
+     * @return void
+     */
+    public function setMergedData(array $mergedData): void
+    {
+        $this->_mergedData = $mergedData;
+    }
+
+    /**
+     * Check if merged data has been set.
+     *
+     * @return bool
+     */
+    public function hasMergedData(): bool
+    {
+        return $this->_mergedData !== null;
+    }
+
+    /**
+     * Get merged data if set, otherwise return regular data.
+     *
+     * @return array<string, mixed>
+     */
+    public function getMergedData(): array
+    {
+        return $this->_mergedData ?? $this->getData();
     }
 
     /**

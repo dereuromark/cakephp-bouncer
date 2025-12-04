@@ -102,12 +102,18 @@ class BouncerController extends AppController
                 if ($bouncerRecord->isPending() && $bouncerRecord->canDetectStaleness()) {
                     $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
                     if ($currentModified && $currentModified > $bouncerRecord->original_modified) {
-                        // Stale! Build 3-way diff
+                        // Stale! Build 3-way diff and auto-merge
                         $conflict = $this->buildThreeWayDiff(
                             $bouncerRecord->getOriginalData(),
                             $currentRecord->toArray(),
                             $bouncerRecord->getData(),
                         );
+
+                        // Auto-apply merged data to bouncer record for display
+                        // This updates in-memory only, not saved to database yet
+                        if (!empty($conflict['merged'])) {
+                            $bouncerRecord->setMergedData($conflict['merged']);
+                        }
                     }
                 }
             } catch (Exception $e) {
