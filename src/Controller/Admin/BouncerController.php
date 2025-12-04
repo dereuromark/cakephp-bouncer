@@ -240,6 +240,9 @@ class BouncerController extends AppController
             $currValue = $current[$field] ?? null;
             $propValue = $proposed[$field] ?? null;
 
+            // Skip fields not in the original proposal - we only care about proposed changes
+            $inProposed = array_key_exists($field, $proposed);
+
             // Skip if no changes
             $currentChanged = $origValue !== $currValue;
             $proposedChanged = $origValue !== $propValue;
@@ -250,13 +253,20 @@ class BouncerController extends AppController
 
             // If only one side changed, use that change
             if (!$currentChanged) {
-                $merged[$field] = $propValue;
-
+                // Only proposed changed - keep proposed value (already in $merged)
                 continue;
             }
             if (!$proposedChanged) {
-                $merged[$field] = $currValue;
+                // Only current changed - update merged only if field was in proposed
+                if ($inProposed) {
+                    $merged[$field] = $currValue;
+                }
 
+                continue;
+            }
+
+            // Both changed - only process if field was in proposed
+            if (!$inProposed) {
                 continue;
             }
 
