@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bouncer\Controller\Admin;
 
 use App\Controller\AppController;
+use Bouncer\Lib\ThreeWayMerge;
 use Cake\Event\EventInterface;
 use DateTime;
 use Exception;
@@ -201,15 +202,20 @@ class BouncerController extends AppController
     /**
      * Build a 3-way diff for conflict resolution.
      *
+     * Attempts to auto-merge non-overlapping changes and identifies true conflicts.
+     *
      * @param array<string, mixed> $original Original data when draft was created
      * @param array<string, mixed> $current Current live data
      * @param array<string, mixed> $proposed Proposed changes in draft
      *
-     * @return array{original: array, current: array, proposed: array, conflicts: array<string, array>, hasConflicts: bool}
+     * @return array{original: array, current: array, proposed: array, merged: array, conflicts: array<string, array>, autoMerged: array<string, array>, hasConflicts: bool}
      */
     protected function buildThreeWayDiff(array $original, array $current, array $proposed): array
     {
         $conflicts = [];
+        $autoMerged = [];
+        $merged = $proposed; // Start with proposed as base
+
         $allFields = array_unique(array_merge(
             array_keys($original),
             array_keys($current),
@@ -221,29 +227,75 @@ class BouncerController extends AppController
             return !in_array($field, ['created', 'modified', 'id', '_delete'], true);
         });
 
+        $merger = new ThreeWayMerge();
+
         foreach ($allFields as $field) {
             $origValue = $original[$field] ?? null;
             $currValue = $current[$field] ?? null;
             $propValue = $proposed[$field] ?? null;
 
-            // Conflict: both current and proposed changed from original, differently
+            // Skip if no changes
             $currentChanged = $origValue !== $currValue;
             $proposedChanged = $origValue !== $propValue;
 
-            if ($currentChanged && $proposedChanged && $currValue !== $propValue) {
-                $conflicts[$field] = [
-                    'original' => $origValue,
-                    'current' => $currValue,
-                    'proposed' => $propValue,
-                ];
+            if (!$currentChanged && !$proposedChanged) {
+                continue;
             }
+
+            // If only one side changed, use that change
+            if (!$currentChanged) {
+                $merged[$field] = $propValue;
+
+                continue;
+            }
+            if (!$proposedChanged) {
+                $merged[$field] = $currValue;
+
+                continue;
+            }
+
+            // Both changed - try to merge if strings
+            if ($currValue === $propValue) {
+                // Same change on both sides
+                $merged[$field] = $currValue;
+
+                continue;
+            }
+
+            // Try smart merge for strings
+            if (is_string($origValue) && is_string($currValue) && is_string($propValue)) {
+                $mergeResult = $merger->mergeStrings((string)$origValue, (string)$currValue, (string)$propValue);
+
+                if ($mergeResult['status'] === ThreeWayMerge::MERGED) {
+                    $merged[$field] = $mergeResult['result'];
+                    $autoMerged[$field] = [
+                        'original' => $origValue,
+                        'current' => $currValue,
+                        'proposed' => $propValue,
+                        'result' => $mergeResult['result'],
+                        'currentChanges' => $mergeResult['currentChanges'],
+                        'proposedChanges' => $mergeResult['proposedChanges'],
+                    ];
+
+                    continue;
+                }
+            }
+
+            // True conflict - cannot auto-merge
+            $conflicts[$field] = [
+                'original' => $origValue,
+                'current' => $currValue,
+                'proposed' => $propValue,
+            ];
         }
 
         return [
             'original' => $original,
             'current' => $current,
             'proposed' => $proposed,
+            'merged' => $merged,
             'conflicts' => $conflicts,
+            'autoMerged' => $autoMerged,
             'hasConflicts' => (bool)$conflicts,
         ];
     }
