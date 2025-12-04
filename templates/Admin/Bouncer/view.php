@@ -28,6 +28,13 @@ $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
         <div class="alert alert-info">
             <strong><?= __('Note:') ?></strong>
             <?= __('This record was modified after the draft was created, but the changes affect different fields. You can proceed with approval.') ?>
+            <div class="mt-2">
+                <?= $this->Html->link(
+                    __('View 3-Way Comparison'),
+                    ['action' => 'resolve', $bouncerRecord->id],
+                    ['class' => 'btn btn-info btn-sm']
+                ) ?>
+            </div>
         </div>
     <?php } ?>
 

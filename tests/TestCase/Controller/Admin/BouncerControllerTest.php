@@ -315,7 +315,7 @@ class BouncerControllerTest extends TestCase
         $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'resolve', $bouncerRecord->id]);
 
         $this->assertRedirect(['action' => 'view', $bouncerRecord->id]);
-        $this->assertFlashMessage('No conflict detected. You can proceed with normal approval.');
+        $this->assertFlashMessage('No changes detected since draft creation. You can proceed with normal approval.');
     }
 
     /**

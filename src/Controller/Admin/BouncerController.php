@@ -154,15 +154,15 @@ class BouncerController extends AppController
             return $this->redirect(['action' => 'index']);
         }
 
-        // Check if there's actually a conflict
-        $hasConflict = false;
+        // Check if record is stale (modified after draft was created)
+        $isStale = false;
         if ($bouncerRecord->canDetectStaleness()) {
             $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
-            $hasConflict = $currentModified && $currentModified > $bouncerRecord->original_modified;
+            $isStale = $currentModified && $currentModified > $bouncerRecord->original_modified;
         }
 
-        if (!$hasConflict) {
-            $this->Flash->info('No conflict detected. You can proceed with normal approval.');
+        if (!$isStale) {
+            $this->Flash->info('No changes detected since draft creation. You can proceed with normal approval.');
 
             return $this->redirect(['action' => 'view', $id]);
         }
