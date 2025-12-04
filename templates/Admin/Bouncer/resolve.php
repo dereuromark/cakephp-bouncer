@@ -6,18 +6,22 @@
  * @var array $conflict
  */
 
-$formatValue = function ($value) {
+$formatValue = function ($value, bool $preserveNewlines = true) {
     if ($value === null) {
-        return 'null';
+        return '<em class="text-muted">null</em>';
     }
     if (is_bool($value)) {
         return $value ? 'true' : 'false';
     }
     if (is_array($value) || is_object($value)) {
-        return json_encode($value);
+        return h(json_encode($value, JSON_PRETTY_PRINT));
+    }
+    $str = (string)$value;
+    if ($preserveNewlines && str_contains($str, "\n")) {
+        return nl2br(h($str));
     }
 
-    return (string)$value;
+    return h($str);
 };
 ?>
 <div class="bouncer resolve content">
@@ -84,21 +88,26 @@ $formatValue = function ($value) {
                                     <?php } ?>
                                 </td>
                                 <td class="text-muted">
-                                    <code class="small"><?= h($formatValue($originalValue)) ?></code>
+                                    <div class="small text-break"><?= $formatValue($originalValue) ?></div>
                                 </td>
                                 <td class="text-info">
-                                    <code class="small"><?= h($formatValue($currentValue)) ?></code>
+                                    <div class="small text-break"><?= $formatValue($currentValue) ?></div>
                                 </td>
                                 <td class="text-success">
-                                    <code class="small"><?= h($formatValue($proposedValue)) ?></code>
+                                    <div class="small text-break"><?= $formatValue($proposedValue) ?></div>
                                 </td>
                                 <td>
-                                    <?php if ($hasConflict) { ?>
+                                    <?php if ($hasConflict) {
+                                        $isMultiline = is_string($proposedValue) && str_contains($proposedValue, "\n");
+                                        $inputType = $isMultiline ? 'textarea' : 'text';
+                                    ?>
                                         <?= $this->Form->control("merged.{$field}", [
+                                            'type' => $inputType,
                                             'label' => false,
                                             'value' => $proposedValue,
                                             'class' => 'form-control form-control-sm',
                                             'id' => 'merged-' . $field,
+                                            'rows' => $isMultiline ? 4 : null,
                                         ]) ?>
                                         <div class="btn-group btn-group-sm mt-1" role="group">
                                             <button type="button" class="btn btn-outline-secondary use-value"
@@ -114,7 +123,7 @@ $formatValue = function ($value) {
                                         </div>
                                     <?php } else { ?>
                                         <?= $this->Form->hidden("merged.{$field}", ['value' => $defaultMerged]) ?>
-                                        <code class="small"><?= h($formatValue($defaultMerged)) ?></code>
+                                        <div class="small text-break"><?= $formatValue($defaultMerged) ?></div>
                                     <?php } ?>
                                 </td>
                             </tr>
