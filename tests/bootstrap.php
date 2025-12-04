@@ -20,6 +20,7 @@ define('APP_DIR', 'src');
 define('TMP', sys_get_temp_dir() . DS);
 define('LOGS', TMP . 'logs' . DS);
 define('CACHE', TMP . 'cache' . DS);
+define('CONFIG', ROOT . DS . 'config' . DS);
 define('CAKE_CORE_INCLUDE_PATH', ROOT . DS . 'vendor' . DS . 'cakephp' . DS . 'cakephp');
 define('CORE_PATH', CAKE_CORE_INCLUDE_PATH . DS);
 define('CAKE', CORE_PATH . 'src' . DS);
@@ -29,10 +30,13 @@ require CAKE . 'functions.php';
 
 Configure::write('debug', true);
 Configure::write('App', [
-    'namespace' => 'Bouncer',
+    'namespace' => 'TestApp',
     'encoding' => 'UTF-8',
     'paths' => [
-        'templates' => [ROOT . DS . 'templates' . DS],
+        'templates' => [
+            ROOT . DS . 'tests' . DS . 'test_app' . DS . 'templates' . DS,
+            ROOT . DS . 'templates' . DS,
+        ],
     ],
 ]);
 
