@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bouncer\Controller\Admin;
 
 use App\Controller\AppController;
+use Bouncer\Lib\ThreeWayMerge;
 use Cake\Event\EventInterface;
 use DateTime;
 use Exception;
@@ -90,19 +91,229 @@ class BouncerController extends AppController
 
         // Get the current published version for comparison (if edit)
         $currentRecord = null;
+        $conflict = null;
+
         if ($bouncerRecord->isEditProposal()) {
             try {
                 $sourceTable = $this->fetchTable($bouncerRecord->source);
                 $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
+
+                // Check for staleness on-demand (only for pending records)
+                if ($bouncerRecord->isPending() && $bouncerRecord->canDetectStaleness()) {
+                    $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+                    if ($currentModified && $currentModified > $bouncerRecord->original_modified) {
+                        // Stale! Build 3-way diff and auto-merge
+                        $conflict = $this->buildThreeWayDiff(
+                            $bouncerRecord->getOriginalData(),
+                            $currentRecord->toArray(),
+                            $bouncerRecord->getData(),
+                        );
+
+                        // Auto-apply merged data to bouncer record for display
+                        // This updates in-memory only, not saved to database yet
+                        if (!empty($conflict['merged'])) {
+                            $bouncerRecord->setMergedData($conflict['merged']);
+                        }
+                    }
+                }
             } catch (Exception $e) {
                 $this->Flash->warning('The original record no longer exists.');
             }
         }
 
         $this->viewBuilder()->addHelper('Bouncer.Bouncer');
-        $this->set(compact('bouncerRecord', 'currentRecord'));
+        $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
 
         return null;
+    }
+
+    /**
+     * Resolve method - 3-way merge interface for conflicts
+     *
+     * @param int|null $id Bouncer Record id.
+     *
+     * @return \Cake\Http\Response|null
+     */
+    public function resolve(?int $id = null)
+    {
+        $bouncerRecord = $this->BouncerRecords->get($id);
+
+        if (!$bouncerRecord->isPending()) {
+            $this->Flash->error('This record has already been processed.');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        if (!$bouncerRecord->isEditProposal()) {
+            $this->Flash->warning('Conflict resolution is only available for edit proposals.');
+
+            return $this->redirect(['action' => 'view', $id]);
+        }
+
+        // Load current record and check for conflict
+        try {
+            $sourceTable = $this->fetchTable($bouncerRecord->source);
+            $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
+        } catch (Exception $e) {
+            $this->Flash->error('The original record no longer exists.');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        // Check if record is stale (modified after draft was created)
+        $isStale = false;
+        if ($bouncerRecord->canDetectStaleness()) {
+            $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+            $isStale = $currentModified && $currentModified > $bouncerRecord->original_modified;
+        }
+
+        if (!$isStale) {
+            $this->Flash->info('No changes detected since draft creation. You can proceed with normal approval.');
+
+            return $this->redirect(['action' => 'view', $id]);
+        }
+
+        $conflict = $this->buildThreeWayDiff(
+            $bouncerRecord->getOriginalData(),
+            $currentRecord->toArray(),
+            $bouncerRecord->getData(),
+        );
+
+        if ($this->request->is(['post', 'put'])) {
+            $mergedData = $this->request->getData('merged');
+
+            if ($mergedData) {
+                // Update bouncer record with merged data
+                $bouncerRecord->data = json_encode($mergedData, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                // Update original_modified to current time to mark conflict as resolved
+                $bouncerRecord->original_modified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+                // Update original_data to current state
+                $bouncerRecord->original_data = json_encode($currentRecord->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+                if ($this->BouncerRecords->save($bouncerRecord)) {
+                    $this->Flash->success('Conflict resolved. Ready for final approval.');
+
+                    return $this->redirect(['action' => 'view', $id]);
+                }
+
+                $this->Flash->error('Failed to save merged changes.');
+            }
+        }
+
+        $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
+
+        return null;
+    }
+
+    /**
+     * Build a 3-way diff for conflict resolution.
+     *
+     * Attempts to auto-merge non-overlapping changes and identifies true conflicts.
+     *
+     * @param array<string, mixed> $original Original data when draft was created
+     * @param array<string, mixed> $current Current live data
+     * @param array<string, mixed> $proposed Proposed changes in draft
+     *
+     * @return array{original: array, current: array, proposed: array, merged: array, conflicts: array<string, array>, autoMerged: array<string, array>, hasConflicts: bool}
+     */
+    protected function buildThreeWayDiff(array $original, array $current, array $proposed): array
+    {
+        $conflicts = [];
+        $autoMerged = [];
+        $merged = $proposed; // Start with proposed as base
+
+        $allFields = array_unique(array_merge(
+            array_keys($original),
+            array_keys($current),
+            array_keys($proposed),
+        ));
+
+        // Filter out internal fields
+        $allFields = array_filter($allFields, function ($field) {
+            return !in_array($field, ['created', 'modified', 'id', '_delete'], true);
+        });
+
+        $merger = new ThreeWayMerge();
+
+        foreach ($allFields as $field) {
+            $origValue = $original[$field] ?? null;
+            $currValue = $current[$field] ?? null;
+            $propValue = $proposed[$field] ?? null;
+
+            // Skip fields not in the original proposal - we only care about proposed changes
+            $inProposed = array_key_exists($field, $proposed);
+
+            // Skip if no changes
+            $currentChanged = $origValue !== $currValue;
+            $proposedChanged = $origValue !== $propValue;
+
+            if (!$currentChanged && !$proposedChanged) {
+                continue;
+            }
+
+            // If only one side changed, use that change
+            if (!$currentChanged) {
+                // Only proposed changed - keep proposed value (already in $merged)
+                continue;
+            }
+            if (!$proposedChanged) {
+                // Only current changed - update merged only if field was in proposed
+                if ($inProposed) {
+                    $merged[$field] = $currValue;
+                }
+
+                continue;
+            }
+
+            // Both changed - only process if field was in proposed
+            if (!$inProposed) {
+                continue;
+            }
+
+            // Both changed - try to merge if strings
+            if ($currValue === $propValue) {
+                // Same change on both sides
+                $merged[$field] = $currValue;
+
+                continue;
+            }
+
+            // Try smart merge for strings
+            if (is_string($origValue) && is_string($currValue) && is_string($propValue)) {
+                $mergeResult = $merger->mergeStrings((string)$origValue, (string)$currValue, (string)$propValue);
+
+                if ($mergeResult['status'] === ThreeWayMerge::MERGED) {
+                    $merged[$field] = $mergeResult['result'];
+                    $autoMerged[$field] = [
+                        'original' => $origValue,
+                        'current' => $currValue,
+                        'proposed' => $propValue,
+                        'result' => $mergeResult['result'],
+                        'currentChanges' => $mergeResult['currentChanges'],
+                        'proposedChanges' => $mergeResult['proposedChanges'],
+                    ];
+
+                    continue;
+                }
+            }
+
+            // True conflict - cannot auto-merge
+            $conflicts[$field] = [
+                'original' => $origValue,
+                'current' => $currValue,
+                'proposed' => $propValue,
+            ];
+        }
+
+        return [
+            'original' => $original,
+            'current' => $current,
+            'proposed' => $proposed,
+            'merged' => $merged,
+            'conflicts' => $conflicts,
+            'autoMerged' => $autoMerged,
+            'hasConflicts' => (bool)$conflicts,
+        ];
     }
 
     /**
@@ -122,6 +333,35 @@ class BouncerController extends AppController
             $this->Flash->error('This record has already been processed.');
 
             return $this->redirect(['action' => 'index']);
+        }
+
+        // Auto-merge stale records before approval
+        if ($bouncerRecord->isEditProposal() && $bouncerRecord->canDetectStaleness()) {
+            try {
+                $sourceTable = $this->fetchTable($bouncerRecord->source);
+                $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
+                $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+
+                if ($currentModified && $currentModified > $bouncerRecord->original_modified) {
+                    // Record is stale - auto-merge before applying
+                    $conflict = $this->buildThreeWayDiff(
+                        $bouncerRecord->getOriginalData(),
+                        $currentRecord->toArray(),
+                        $bouncerRecord->getData(),
+                    );
+
+                    if ($conflict['hasConflicts']) {
+                        $this->Flash->error('This record has unresolved conflicts. Please resolve them first.');
+
+                        return $this->redirect(['action' => 'resolve', $id]);
+                    }
+
+                    // Set merged data - this prevents the behavior from auto-merging again
+                    $bouncerRecord->setMergedData($conflict['merged']);
+                }
+            } catch (Exception $e) {
+                // Source record no longer exists - continue with approval (will fail gracefully)
+            }
         }
 
         $connection = $this->BouncerRecords->getConnection();

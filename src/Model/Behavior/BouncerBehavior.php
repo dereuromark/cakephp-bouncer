@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bouncer\Model\Behavior;
 
 use ArrayObject;
+use Bouncer\Lib\ThreeWayMerge;
 use Bouncer\Model\Entity\BouncerRecord;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
@@ -22,6 +23,17 @@ use RuntimeException;
 class BouncerBehavior extends Behavior
 {
     use LocatorAwareTrait;
+
+    /**
+     * Default JSON encoding flags for storing data.
+     *
+     * - JSON_UNESCAPED_UNICODE: Store UTF-8 characters directly (ö instead of \u00f6)
+     * - JSON_UNESCAPED_SLASHES: Don't escape forward slashes
+     * - JSON_PRESERVE_ZERO_FRACTION: Keep 10.0 as 10.0 instead of 10
+     *
+     * @var int
+     */
+    public const JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION;
 
     /**
      * Default configuration.
@@ -246,10 +258,13 @@ class BouncerBehavior extends Behavior
         $data = $this->serializeEntity($entity);
         $originalData = null;
 
+        $originalModified = null;
         if (!$isNew) {
             // For edits, store the current state as original
             $original = $this->_table->get($primaryKey);
             $originalData = $this->serializeEntity($original);
+            // Capture modification timestamp for conflict detection
+            $originalModified = $original->get('modified') ?? $original->get('created');
         }
 
         $note = $this->getNote($options);
@@ -261,7 +276,7 @@ class BouncerBehavior extends Behavior
 
             if ($isExistingDelete) {
                 // Existing draft is a delete, create new edit draft (will be superseded below)
-                $bouncerRecord = $bouncerTable->newEntity([
+                $bouncerData = [
                     'source' => $source,
                     'primary_key' => $primaryKey,
                     'user_id' => $userId,
@@ -269,7 +284,11 @@ class BouncerBehavior extends Behavior
                     'data' => $data,
                     'original_data' => $originalData,
                     'note' => $note,
-                ]);
+                ];
+                if ($originalModified !== null) {
+                    $bouncerData['original_modified'] = $originalModified;
+                }
+                $bouncerRecord = $bouncerTable->newEntity($bouncerData);
                 $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
             } else {
                 // Check if the new data matches the original data (effectively reverted)
@@ -310,6 +329,9 @@ class BouncerBehavior extends Behavior
                     if ($note !== null) {
                         $patchData['note'] = $note;
                     }
+                    if ($originalModified !== null) {
+                        $patchData['original_modified'] = $originalModified;
+                    }
                     $bouncerTable->patchEntity($existingDraft, $patchData);
                     $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
                 }
@@ -340,7 +362,7 @@ class BouncerBehavior extends Behavior
             }
 
             // Create new draft
-            $bouncerRecord = $bouncerTable->newEntity([
+            $bouncerData = [
                 'source' => $source,
                 'primary_key' => $primaryKey,
                 'user_id' => $userId,
@@ -348,7 +370,11 @@ class BouncerBehavior extends Behavior
                 'data' => $data,
                 'original_data' => $originalData,
                 'note' => $note,
-            ]);
+            ];
+            if ($originalModified !== null) {
+                $bouncerData['original_modified'] = $originalModified;
+            }
+            $bouncerRecord = $bouncerTable->newEntity($bouncerData);
             $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
         }
 
@@ -413,9 +439,11 @@ class BouncerBehavior extends Behavior
         )->first();
 
         // Store current entity state as original_data
-        $originalData = json_encode($entity->toArray());
-        $data = json_encode(['_delete' => true]); // Mark as deletion
+        $originalData = json_encode($entity->toArray(), self::JSON_FLAGS);
+        $data = json_encode(['_delete' => true], self::JSON_FLAGS); // Mark as deletion
         $note = $this->getNote($options);
+        // Capture modification timestamp for conflict detection
+        $originalModified = $entity->get('modified') ?? $entity->get('created');
 
         if ($existingDraft) {
             // Check if existing draft is also a delete (same type)
@@ -431,11 +459,14 @@ class BouncerBehavior extends Behavior
                 if ($note !== null) {
                     $patchData['note'] = $note;
                 }
+                if ($originalModified !== null) {
+                    $patchData['original_modified'] = $originalModified;
+                }
                 $bouncerTable->patchEntity($existingDraft, $patchData);
                 $bouncerRecord = $bouncerTable->save($existingDraft, ['atomic' => false]);
             } else {
                 // Existing draft is an edit, create new delete draft (will be superseded below)
-                $bouncerRecord = $bouncerTable->newEntity([
+                $bouncerData = [
                     'source' => $source,
                     'primary_key' => $primaryKey,
                     'user_id' => $userId,
@@ -443,12 +474,16 @@ class BouncerBehavior extends Behavior
                     'data' => $data,
                     'original_data' => $originalData,
                     'note' => $note,
-                ]);
+                ];
+                if ($originalModified !== null) {
+                    $bouncerData['original_modified'] = $originalModified;
+                }
+                $bouncerRecord = $bouncerTable->newEntity($bouncerData);
                 $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
             }
         } else {
             // Create new delete bouncer record
-            $bouncerRecord = $bouncerTable->newEntity([
+            $bouncerData = [
                 'source' => $source,
                 'primary_key' => $primaryKey,
                 'user_id' => $userId,
@@ -456,7 +491,11 @@ class BouncerBehavior extends Behavior
                 'data' => $data,
                 'original_data' => $originalData,
                 'note' => $note,
-            ]);
+            ];
+            if ($originalModified !== null) {
+                $bouncerData['original_modified'] = $originalModified;
+            }
+            $bouncerRecord = $bouncerTable->newEntity($bouncerData);
             $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
         }
 
@@ -513,7 +552,7 @@ class BouncerBehavior extends Behavior
         // Remove internal fields
         unset($data['created'], $data['modified']);
 
-        $encoded = json_encode($data);
+        $encoded = json_encode($data, self::JSON_FLAGS);
         if ($encoded === false) {
             throw new RuntimeException('Failed to encode entity data');
         }
@@ -771,6 +810,15 @@ class BouncerBehavior extends Behavior
     /**
      * Apply approved bouncer record changes to the actual table.
      *
+     * For edit proposals on stale records (where the source record has been modified
+     * since the proposal was created), this method automatically performs a 3-way merge
+     * to preserve both the owner's changes and the proposal's changes when possible.
+     *
+     * Options:
+     * - `autoMerge`: bool (default: true) - Whether to automatically perform 3-way merge for stale records.
+     *   Set to false if you want to handle merging manually before calling this method.
+     * - `skipFields`: array - Fields to skip during merge (default: ['id', 'created', 'modified', '_delete'])
+     *
      * @param \Bouncer\Model\Entity\BouncerRecord $bouncerRecord Bouncer record
      * @param array<string, mixed> $options Save options
      *
@@ -778,7 +826,40 @@ class BouncerBehavior extends Behavior
      */
     public function applyApprovedChanges($bouncerRecord, array $options = [])
     {
-        $data = $bouncerRecord->getData();
+        $autoMerge = $options['autoMerge'] ?? true;
+        unset($options['autoMerge']);
+
+        // Auto-merge stale edit proposals if not already merged
+        if (
+            $autoMerge
+            && !$bouncerRecord->hasMergedData()
+            && $bouncerRecord->isEditProposal()
+            && $bouncerRecord->canDetectStaleness()
+        ) {
+            $currentRecord = $this->_table->get($bouncerRecord->primary_key);
+            $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+
+            if ($currentModified && $currentModified > $bouncerRecord->original_modified) {
+                // Record is stale - perform 3-way merge
+                $skipFields = $options['skipFields'] ?? ['id', 'created', 'modified', '_delete'];
+                unset($options['skipFields']);
+
+                $merger = new ThreeWayMerge();
+                $mergeResult = $merger->mergeArrays(
+                    $bouncerRecord->getOriginalData(),
+                    $currentRecord->toArray(),
+                    $bouncerRecord->getData(),
+                    $skipFields,
+                );
+
+                // Apply merged data (even if there are conflicts, we use the merged result
+                // which defaults to proposed values for conflicting fields)
+                $bouncerRecord->setMergedData($mergeResult['merged']);
+            }
+        }
+
+        // Use merged data if available (for 3-way merge scenarios), otherwise use original data
+        $data = $bouncerRecord->getMergedData();
 
         // Check if this is a delete operation
         if (isset($data['_delete']) && $data['_delete']) {

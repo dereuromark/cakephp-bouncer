@@ -289,3 +289,100 @@ If your application uses UUIDs for primary keys or user IDs, you need to copy an
 3. Run the migration from your app: `bin/cake migrations migrate`
 
 **Note:** Do not run the plugin migration directly if you need UUID support - use your adjusted app migration instead.
+
+## 3-Way Merge for Stale Proposals
+
+When a proposal becomes "stale" (the source record has been modified since the proposal was created), Bouncer automatically performs a 3-way merge to preserve both sets of changes when possible.
+
+### How It Works
+
+1. **Staleness Detection**: Proposals store the original `modified` timestamp (`original_modified`). When approving, Bouncer compares this with the current record's `modified` timestamp.
+
+2. **Automatic Merge**: If the source record has been modified, `applyApprovedChanges()` automatically:
+   - Loads the current record state
+   - Performs a 3-way merge between original, current, and proposed data
+   - Applies the merged result
+
+3. **Conflict Resolution**:
+   - **Non-overlapping changes**: Both sets of changes are preserved (e.g., owner removes typo, contributor fixes spelling elsewhere)
+   - **Overlapping changes**: Proposed value takes precedence (can be customized)
+
+### Example Scenario
+
+```
+Original:  "Hello!!!! World"
+Current:   "Hello World"      (owner removed "!!!!")
+Proposed:  "Hello!!!! Universe" (contributor changed "World" to "Universe")
+Merged:    "Hello Universe"   (both changes preserved!)
+```
+
+### Options for `applyApprovedChanges()`
+
+```php
+$bouncer->applyApprovedChanges($bouncerRecord, [
+    // Disable auto-merge to use proposed data as-is (default: true)
+    'autoMerge' => false,
+
+    // Custom fields to skip during merge
+    'skipFields' => ['id', 'created', 'modified', 'internal_field'],
+]);
+```
+
+### Pre-Merging Data
+
+For custom merge logic or UI-driven conflict resolution, you can pre-merge data:
+
+```php
+// Build your own merged data
+$mergedData = ['title' => 'Custom merged title', ...];
+
+// Set it on the bouncer record
+$bouncerRecord->setMergedData($mergedData);
+
+// Apply - will use your merged data instead of auto-merging
+$bouncer->applyApprovedChanges($bouncerRecord);
+```
+
+### Using BouncerRecord Helper Methods
+
+The `BouncerRecord` entity provides convenient methods for staleness detection and merging:
+
+```php
+// Check if a draft is stale (source record was modified after draft creation)
+if ($bouncerRecord->isStale($currentEntity)) {
+    // Handle stale draft
+}
+
+// Build merge result (returns null if not stale)
+$mergeResult = $bouncerRecord->buildMergeResult($currentEntity);
+if ($mergeResult) {
+    // $mergeResult contains: merged, conflicts, autoMerged, hasConflicts
+    if ($mergeResult['hasConflicts']) {
+        // Handle conflicts
+    } else {
+        // Use $mergeResult['merged'] for the auto-merged data
+    }
+}
+```
+
+### Using ThreeWayMerge Directly
+
+For advanced use cases or custom merge logic:
+
+```php
+use Bouncer\Lib\ThreeWayMerge;
+
+$merger = new ThreeWayMerge();
+
+// Merge string values
+$result = $merger->mergeStrings($original, $current, $proposed);
+if ($result['status'] === ThreeWayMerge::MERGED) {
+    echo $result['result']; // Successfully merged
+} else {
+    // ThreeWayMerge::CONFLICT - manual resolution needed
+}
+
+// Merge arrays of entity data
+$result = $merger->mergeArrays($originalData, $currentData, $proposedData);
+// Returns: merged, conflicts, autoMerged, hasConflicts
+```

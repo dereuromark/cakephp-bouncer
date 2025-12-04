@@ -3,6 +3,7 @@
  * @var \App\View\AppView $this
  * @var \Bouncer\Model\Entity\BouncerRecord $bouncerRecord
  * @var \Cake\Datasource\EntityInterface|null $currentRecord
+ * @var array|null $conflict
  */
 
 $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
@@ -10,6 +11,32 @@ $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
 <?= $this->Bouncer->diffStyles() ?>
 <div class="bouncer view content">
     <h1><?= __('Review Proposed Changes') ?></h1>
+
+    <?php if (!empty($conflict) && $conflict['hasConflicts']) { ?>
+        <div class="alert alert-warning">
+            <strong><?= __('Conflict Detected!') ?></strong>
+            <?= __('This record was modified after the draft was created, and some of the same fields were changed. Please review and merge the changes before approval.') ?>
+            <div class="mt-2">
+                <?= $this->Html->link(
+                    __('Resolve Conflicts'),
+                    ['action' => 'resolve', $bouncerRecord->id],
+                    ['class' => 'btn btn-warning btn-sm']
+                ) ?>
+            </div>
+        </div>
+    <?php } elseif (!empty($conflict)) { ?>
+        <div class="alert alert-info">
+            <strong><?= __('Note:') ?></strong>
+            <?= __('This record was modified after the draft was created, but the changes affect different fields. You can proceed with approval.') ?>
+            <div class="mt-2">
+                <?= $this->Html->link(
+                    __('View 3-Way Comparison'),
+                    ['action' => 'resolve', $bouncerRecord->id],
+                    ['class' => 'btn btn-info btn-sm']
+                ) ?>
+            </div>
+        </div>
+    <?php } ?>
 
     <div class="card mb-3">
         <div class="card-header">
