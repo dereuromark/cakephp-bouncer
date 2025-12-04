@@ -6,6 +6,7 @@ namespace Bouncer\Test\TestCase\Model\Entity;
 
 use Bouncer\Model\Entity\BouncerRecord;
 use Cake\I18n\DateTime;
+use Cake\ORM\Entity;
 use Cake\TestSuite\TestCase;
 
 /**
@@ -309,7 +310,7 @@ class BouncerRecordTest extends TestCase
             'original_modified' => new DateTime('-1 hour'),
         ]);
 
-        $currentEntity = new \Cake\ORM\Entity([
+        $currentEntity = new Entity([
             'modified' => new DateTime('now'),
         ]);
 
@@ -327,7 +328,7 @@ class BouncerRecordTest extends TestCase
             'original_modified' => new DateTime('+1 hour'),
         ]);
 
-        $currentEntity = new \Cake\ORM\Entity([
+        $currentEntity = new Entity([
             'modified' => new DateTime('now'),
         ]);
 
@@ -343,7 +344,7 @@ class BouncerRecordTest extends TestCase
     {
         $entity = new BouncerRecord([]);
 
-        $currentEntity = new \Cake\ORM\Entity([
+        $currentEntity = new Entity([
             'modified' => new DateTime('now'),
         ]);
 
@@ -363,7 +364,7 @@ class BouncerRecordTest extends TestCase
             'original_data' => json_encode(['content' => 'original']),
         ]);
 
-        $currentEntity = new \Cake\ORM\Entity([
+        $currentEntity = new Entity([
             'modified' => new DateTime('now'),
             'content' => 'current',
         ]);
@@ -384,7 +385,7 @@ class BouncerRecordTest extends TestCase
             'original_data' => json_encode(['content' => 'Hello!!!! World']),
         ]);
 
-        $currentEntity = new \Cake\ORM\Entity([
+        $currentEntity = new Entity([
             'modified' => new DateTime('now'),
             'content' => 'Hello World',
         ]);
