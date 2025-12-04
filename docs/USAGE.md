@@ -6,6 +6,7 @@ This guide covers common usage patterns and scenarios for the Bouncer plugin.
 
 - [Basic Setup](#basic-setup)
 - [Controller Integration](#controller-integration)
+- [View Helper](#view-helper)
 - [Configuration Options](#configuration-options)
 - [Advanced Patterns](#advanced-patterns)
 - [Troubleshooting](#troubleshooting)
@@ -110,6 +111,92 @@ $this->addBehavior('Bouncer.Bouncer', [
 // In controller
 $article->user_id = $this->Authentication->getIdentity()->getIdentifier();
 $this->Articles->save($article); // Bouncer reads user_id from entity
+```
+
+## View Helper
+
+The BouncerHelper provides methods for displaying bouncer records with diff comparisons.
+
+### Loading the Helper
+
+```php
+// In your AppView.php
+$this->loadHelper('Bouncer.Bouncer');
+
+// Or in a controller
+public function beforeRender(\Cake\Event\EventInterface $event)
+{
+    $this->viewBuilder()->addHelper('Bouncer.Bouncer');
+}
+```
+
+### Configuring the Helper
+
+The BouncerHelper supports configuration options for customizing diff rendering:
+
+```php
+// In your AppView.php or controller
+$this->loadHelper('Bouncer.Bouncer', [
+    'differOptions' => [
+        'context' => 3,              // Number of context lines around changes
+        'ignoreCase' => false,       // Case-sensitive comparison
+        'ignoreWhitespace' => false, // Whitespace-sensitive comparison
+    ],
+    'rendererOptions' => [
+        'detailLevel' => 'word',     // 'word', 'char', or 'line'
+        'showHeader' => false,       // Show diff header
+        'lineNumbers' => true,       // Show line numbers
+    ],
+]);
+```
+
+### Enhanced Diff Rendering
+
+For enhanced word-level diff rendering, install the optional `jfcherng/php-diff` package:
+
+```bash
+composer require jfcherng/php-diff
+```
+
+When installed, the helper automatically uses this library for better diff output:
+- **Word-level highlighting**: Shows which words changed within a line (not just characters)
+- **Improved visual styling**: Better CSS for diff display
+- **Configurable detail level**: Choose between word, character, or line-level diff
+
+Without `jfcherng/php-diff`, the helper falls back to character-level diff using `sebastian/diff`.
+
+### Helper Methods
+
+```php
+// Calculate diffs for display
+$diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
+
+// Render inline diff view
+echo $this->Bouncer->diffInline($diffs);
+
+// Render side-by-side diff view
+echo $this->Bouncer->diffSideBySide($diffs);
+
+// Render new record table
+echo $this->Bouncer->newRecordTable($bouncerRecord);
+
+// Render status badge
+echo $this->Bouncer->statusBadge($bouncerRecord->status);
+
+// Render record type badge
+echo $this->Bouncer->recordTypeBadge($bouncerRecord);
+
+// Include diff CSS styles
+echo $this->Bouncer->diffStyles();
+
+// Include diff toggle buttons
+echo $this->Bouncer->diffToggleButtons();
+
+// Include diff toggle JavaScript
+echo $this->Bouncer->diffToggleScript();
+
+// Format any value for display
+echo $this->Bouncer->formatValue($value);
 ```
 
 ## Configuration Options

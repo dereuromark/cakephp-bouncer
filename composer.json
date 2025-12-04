@@ -33,7 +33,8 @@
         "cakephp/migrations": "^4.0.0"
     },
     "suggest": {
-        "dereuromark/cakephp-audit-stash": "Integrates seamlessly to provide complete audit trail of approval workflow"
+        "dereuromark/cakephp-audit-stash": "Integrates seamlessly to provide complete audit trail of approval workflow",
+        "jfcherng/php-diff": "For enhanced word-level diff rendering in BouncerHelper (falls back to sebastian/diff if not installed)"
     },
     "autoload": {
         "psr-4": {
