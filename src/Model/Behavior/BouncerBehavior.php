@@ -805,7 +805,8 @@ class BouncerBehavior extends Behavior
      */
     public function applyApprovedChanges($bouncerRecord, array $options = [])
     {
-        $data = $bouncerRecord->getData();
+        // Use merged data if available (for 3-way merge scenarios), otherwise use original data
+        $data = $bouncerRecord->getMergedData();
 
         // Check if this is a delete operation
         if (isset($data['_delete']) && $data['_delete']) {
