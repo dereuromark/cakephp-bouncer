@@ -44,7 +44,7 @@ class BouncerHelperTest extends TestCase
 
         $this->assertArrayHasKey('title', $diffs);
         $this->assertArrayHasKey('content', $diffs);
-        $this->assertEquals('Old Title', $diffs['title']['currentStr']);
+        $this->assertEquals('Old Title', $diffs['title']['baseStr']);
         $this->assertEquals('New Title', $diffs['title']['proposedStr']);
     }
 
@@ -102,7 +102,7 @@ class BouncerHelperTest extends TestCase
     {
         $diffs = [
             'title' => [
-                'currentStr' => 'Old',
+                'baseStr' => 'Old',
                 'proposedStr' => 'New',
                 'isLongText' => false,
                 'inline' => null,
@@ -129,7 +129,7 @@ class BouncerHelperTest extends TestCase
     {
         $diffs = [
             'content' => [
-                'currentStr' => 'Old content',
+                'baseStr' => 'Old content',
                 'proposedStr' => 'New content',
                 'isLongText' => false,
                 'inline' => null,

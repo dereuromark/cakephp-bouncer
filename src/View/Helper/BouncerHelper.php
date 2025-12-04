@@ -134,7 +134,10 @@ class BouncerHelper extends Helper
     protected int $contextLines = 2;
 
     /**
-     * Calculate diffs between bouncer record and current record.
+     * Calculate diffs between bouncer record and current/original record.
+     *
+     * For pending records: compares current live record vs proposed changes.
+     * For processed records (approved/rejected): compares original_data vs proposed data.
      *
      * @param \Bouncer\Model\Entity\BouncerRecord $bouncerRecord
      * @param \Cake\Datasource\EntityInterface|null $currentRecord
@@ -143,14 +146,30 @@ class BouncerHelper extends Helper
      */
     public function calculateDiffs(BouncerRecord $bouncerRecord, ?EntityInterface $currentRecord): array
     {
-        if (!$bouncerRecord->isEditProposal() || !$currentRecord) {
+        if (!$bouncerRecord->isEditProposal()) {
             return [];
         }
 
-        // Use merged data if available (for stale records with auto-merge)
-        $proposedData = $bouncerRecord->getMergedData();
-        $currentData = $currentRecord->toArray();
-        $allFields = array_unique(array_merge(array_keys($currentData), array_keys($proposedData)));
+        $proposedData = $bouncerRecord->getData();
+
+        // For non-pending records, compare original_data vs proposed data
+        // (current record may have changed or been merged already)
+        if (!$bouncerRecord->isPending()) {
+            $baseData = $bouncerRecord->getOriginalData();
+            if (!$baseData) {
+                return [];
+            }
+        } else {
+            // For pending records, compare against current live record
+            if (!$currentRecord) {
+                return [];
+            }
+            $baseData = $currentRecord->toArray();
+            // Use merged data if available (for stale records with auto-merge)
+            $proposedData = $bouncerRecord->getMergedData();
+        }
+
+        $allFields = array_unique(array_merge(array_keys($baseData), array_keys($proposedData)));
         sort($allFields);
 
         $diffs = [];
@@ -162,25 +181,25 @@ class BouncerHelper extends Helper
                 continue;
             }
 
-            $currentValue = $currentData[$field] ?? null;
+            $baseValue = $baseData[$field] ?? null;
             $proposedValue = $proposedData[$field] ?? null;
 
-            $currentStr = $this->valueToString($currentValue);
+            $baseStr = $this->valueToString($baseValue);
             $proposedStr = $this->valueToString($proposedValue);
 
-            if ($currentStr === $proposedStr) {
+            if ($baseStr === $proposedStr) {
                 continue;
             }
 
-            $isLongText = strlen($currentStr) > 100 || strlen($proposedStr) > 100
-                || str_contains($currentStr, "\n") || str_contains($proposedStr, "\n");
+            $isLongText = strlen($baseStr) > 100 || strlen($proposedStr) > 100
+                || str_contains($baseStr, "\n") || str_contains($proposedStr, "\n");
 
             $diffs[$field] = [
-                'currentStr' => $currentStr,
+                'baseStr' => $baseStr,
                 'proposedStr' => $proposedStr,
                 'isLongText' => $isLongText,
-                'inline' => $isLongText ? $this->renderDiff($currentStr, $proposedStr, 'Inline') : null,
-                'sideBySide' => $isLongText ? $this->renderDiff($currentStr, $proposedStr, 'SideBySide') : null,
+                'inline' => $isLongText ? $this->renderDiff($baseStr, $proposedStr, 'Inline') : null,
+                'sideBySide' => $isLongText ? $this->renderDiff($baseStr, $proposedStr, 'SideBySide') : null,
             ];
         }
 
@@ -209,7 +228,7 @@ class BouncerHelper extends Helper
             if ($diff['isLongText']) {
                 $output .= $diff['inline'];
             } else {
-                $output .= $this->renderSimpleDiff($diff['currentStr'], $diff['proposedStr']);
+                $output .= $this->renderSimpleDiff($diff['baseStr'], $diff['proposedStr']);
             }
 
             $output .= '</div></div>';
@@ -240,7 +259,7 @@ class BouncerHelper extends Helper
             if ($diff['isLongText']) {
                 $output .= $diff['sideBySide'];
             } else {
-                $output .= $this->renderSimpleDiff($diff['currentStr'], $diff['proposedStr']);
+                $output .= $this->renderSimpleDiff($diff['baseStr'], $diff['proposedStr']);
             }
 
             $output .= '</div></div>';
@@ -252,20 +271,20 @@ class BouncerHelper extends Helper
     /**
      * Render a simple side-by-side diff for short values.
      *
-     * @param string $currentStr
+     * @param string $baseStr
      * @param string $proposedStr
      *
      * @return string HTML output
      */
-    protected function renderSimpleDiff(string $currentStr, string $proposedStr): string
+    protected function renderSimpleDiff(string $baseStr, string $proposedStr): string
     {
         $output = '<div class="row">';
         $output .= '<div class="col-md-6">';
-        $output .= '<span class="text-muted">' . __('Current:') . '</span>';
-        $output .= '<div class="p-2 bg-light border rounded"><del>' . h($currentStr) . '</del></div>';
+        $output .= '<span class="text-muted">' . __('Before:') . '</span>';
+        $output .= '<div class="p-2 bg-light border rounded"><del>' . h($baseStr) . '</del></div>';
         $output .= '</div>';
         $output .= '<div class="col-md-6">';
-        $output .= '<span class="text-muted">' . __('Proposed:') . '</span>';
+        $output .= '<span class="text-muted">' . __('After:') . '</span>';
         $output .= '<div class="p-2 bg-warning border rounded"><ins><strong>' . h($proposedStr) . '</strong></ins></div>';
         $output .= '</div>';
         $output .= '</div>';
