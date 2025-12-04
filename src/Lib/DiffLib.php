@@ -24,9 +24,11 @@ class DiffLib
      *
      * @param string $old Original text
      * @param string $new Changed text
+     *
      * @return string HTML diff output
      */
-    public function compare(string $old, string $new): string {
+    public function compare(string $old, string $new): string
+    {
         // Normalize line endings
         $old = str_replace(["\r\n", "\r"], "\n", $old);
         $new = str_replace(["\r\n", "\r"], "\n", $new);
@@ -39,9 +41,11 @@ class DiffLib
      *
      * @param string $old Original text
      * @param string $new Changed text
+     *
      * @return string HTML diff output
      */
-    public function compareSideBySide(string $old, string $new): string {
+    public function compareSideBySide(string $old, string $new): string
+    {
         // Normalize line endings
         $old = str_replace(["\r\n", "\r"], "\n", $old);
         $new = str_replace(["\r\n", "\r"], "\n", $new);
@@ -54,9 +58,11 @@ class DiffLib
      *
      * @param string $old
      * @param string $new
+     *
      * @return string
      */
-    protected function renderSideBySide(string $old, string $new): string {
+    protected function renderSideBySide(string $old, string $new): string
+    {
         $diff = $this->getDiffArray($old, $new);
 
         // Find which lines to show (changes + context)
@@ -163,9 +169,11 @@ class DiffLib
      * @param array<array<string, mixed>> $rows
      * @param array<string> $oldBuffer
      * @param array<string> $newBuffer
+     *
      * @return void
      */
-    protected function flushSideBySideBuffers(array &$rows, array &$oldBuffer, array &$newBuffer): void {
+    protected function flushSideBySideBuffers(array &$rows, array &$oldBuffer, array &$newBuffer): void
+    {
         $maxLen = max(count($oldBuffer), count($newBuffer));
         for ($i = 0; $i < $maxLen; $i++) {
             $oldLine = $oldBuffer[$i] ?? null;
