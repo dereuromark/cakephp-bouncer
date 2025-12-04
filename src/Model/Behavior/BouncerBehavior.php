@@ -26,9 +26,13 @@ class BouncerBehavior extends Behavior
     /**
      * Default JSON encoding flags for storing data.
      *
+     * - JSON_UNESCAPED_UNICODE: Store UTF-8 characters directly (ö instead of \u00f6)
+     * - JSON_UNESCAPED_SLASHES: Don't escape forward slashes
+     * - JSON_PRESERVE_ZERO_FRACTION: Keep 10.0 as 10.0 instead of 10
+     *
      * @var int
      */
-    public const JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+    public const JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION;
 
     /**
      * Default configuration.
