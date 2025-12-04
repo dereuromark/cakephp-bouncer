@@ -120,6 +120,12 @@ class BouncerHelper extends Helper
      */
     protected function renderDiff(string $old, string $new, string $renderer): string
     {
+        // Check for whitespace-only changes first - use DiffLib for special rendering
+        $diffLib = new DiffLib();
+        if ($diffLib->isWhitespaceOnlyChange($old, $new)) {
+            return $diffLib->renderWhitespaceChange($old, $new);
+        }
+
         if ($this->hasJfcherngDiff()) {
             return $this->renderJfcherngDiff($old, $new, $renderer);
         }
