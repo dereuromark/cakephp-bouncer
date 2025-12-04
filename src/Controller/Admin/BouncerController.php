@@ -114,6 +114,7 @@ class BouncerController extends AppController
             }
         }
 
+        $this->viewBuilder()->addHelper('Bouncer.Bouncer');
         $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
 
         return null;

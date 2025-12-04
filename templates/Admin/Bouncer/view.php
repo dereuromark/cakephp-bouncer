@@ -5,7 +5,10 @@
  * @var \Cake\Datasource\EntityInterface|null $currentRecord
  * @var array|null $conflict
  */
+
+$diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
 ?>
+<?= $this->Bouncer->diffStyles() ?>
 <div class="bouncer view content">
     <h1><?= __('Review Proposed Changes') ?></h1>
 
@@ -46,17 +49,11 @@
                         </tr>
                         <tr>
                             <th><?= __('Record Type') ?></th>
-                            <td>
-                                <?php if ($bouncerRecord->isNewRecordProposal()) { ?>
-                                    <span class="badge bg-success">New Record</span>
-                                <?php } else { ?>
-                                    <span class="badge bg-info">Edit to Record #<?= $bouncerRecord->primary_key ?></span>
-                                <?php } ?>
-                            </td>
+                            <td><?= $this->Bouncer->recordTypeBadge($bouncerRecord) ?></td>
                         </tr>
                         <tr>
                             <th><?= __('Status') ?></th>
-                            <td><span class="badge bg-warning"><?= h($bouncerRecord->status) ?></span></td>
+                            <td><?= $this->Bouncer->statusBadge($bouncerRecord->status) ?></td>
                         </tr>
                     </table>
                 </div>
@@ -103,74 +100,25 @@
     </div>
 
     <div class="card mb-3">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <strong><?= __('Proposed Changes') ?></strong>
+            <?php if ($bouncerRecord->isEditProposal() && $currentRecord && $diffs) { ?>
+                <?= $this->Bouncer->diffToggleButtons() ?>
+            <?php } ?>
         </div>
         <div class="card-body">
             <?php if ($bouncerRecord->isEditProposal() && $currentRecord) { ?>
-                <h5><?= __('Changes (Current → Proposed)') ?></h5>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Field</th>
-                            <th>Current Value</th>
-                            <th>Proposed Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $proposedData = $bouncerRecord->getData();
-                        $currentData = $currentRecord->toArray();
-                        $allFields = array_unique(array_merge(array_keys($currentData), array_keys($proposedData)));
-                        sort($allFields);
-
-                        foreach ($allFields as $field) {
-                            if (in_array($field, ['created', 'modified'])) {
-                                continue;
-                            }
-
-                            $currentValue = $currentData[$field] ?? null;
-                            $proposedValue = $proposedData[$field] ?? null;
-
-                            if ($currentValue == $proposedValue) {
-                                continue; // Skip unchanged fields
-                            }
-                            ?>
-                            <tr>
-                                <td><strong><?= h($field) ?></strong></td>
-                                <td><?= h($currentValue) ?></td>
-                                <td class="table-warning"><strong><?= h($proposedValue) ?></strong></td>
-                            </tr>
-                        <?php } ?>
-                    </tbody>
-                </table>
+                <div id="inline-diff-view">
+                    <?= $this->Bouncer->diffInline($diffs) ?>
+                </div>
+                <div id="side-diff-view" style="display: none;">
+                    <?= $this->Bouncer->diffSideBySide($diffs) ?>
+                </div>
             <?php } else { ?>
-                <h5><?= __('New Record Data') ?></h5>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Field</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($bouncerRecord->getData() as $field => $value) { ?>
-                            <?php if (in_array($field, ['created', 'modified'])) {
-                                continue;
-                            } ?>
-                            <tr>
-                                <td><strong><?= h($field) ?></strong></td>
-                                <td><?= h($value) ?></td>
-                            </tr>
-                        <?php } ?>
-                    </tbody>
-                </table>
+                <?= $this->Bouncer->newRecordTable($bouncerRecord) ?>
             <?php } ?>
 
-            <details class="mt-3">
-                <summary><strong><?= __('Raw JSON Data') ?></strong></summary>
-                <pre class="bg-light p-3 mt-2"><code><?= h(json_encode($bouncerRecord->getData(), JSON_PRETTY_PRINT)) ?></code></pre>
-            </details>
+            <?= $this->Bouncer->rawJsonDetails($bouncerRecord) ?>
         </div>
     </div>
 
@@ -211,3 +159,5 @@
         <?= $this->Html->link(__('Back to List'), ['action' => 'index'], ['class' => 'btn btn-secondary']) ?>
     </div>
 </div>
+
+<?= $this->Bouncer->diffToggleScript() ?>
