@@ -335,6 +335,35 @@ class BouncerController extends AppController
             return $this->redirect(['action' => 'index']);
         }
 
+        // Auto-merge stale records before approval
+        if ($bouncerRecord->isEditProposal() && $bouncerRecord->canDetectStaleness()) {
+            try {
+                $sourceTable = $this->fetchTable($bouncerRecord->source);
+                $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
+                $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+
+                if ($currentModified && $currentModified > $bouncerRecord->original_modified) {
+                    // Record is stale - auto-merge before applying
+                    $conflict = $this->buildThreeWayDiff(
+                        $bouncerRecord->getOriginalData(),
+                        $currentRecord->toArray(),
+                        $bouncerRecord->getData(),
+                    );
+
+                    if ($conflict['hasConflicts']) {
+                        $this->Flash->error('This record has unresolved conflicts. Please resolve them first.');
+
+                        return $this->redirect(['action' => 'resolve', $id]);
+                    }
+
+                    // Update bouncer record with merged data
+                    $bouncerRecord->data = json_encode($conflict['merged'], JSON_THROW_ON_ERROR);
+                }
+            } catch (Exception $e) {
+                // Source record no longer exists - continue with approval (will fail gracefully)
+            }
+        }
+
         $connection = $this->BouncerRecords->getConnection();
 
         try {
