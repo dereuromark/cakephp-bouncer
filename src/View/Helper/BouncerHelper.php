@@ -17,11 +17,11 @@ use Cake\View\Helper;
  */
 class BouncerHelper extends Helper
 {
- /**
-  * Helpers to load
-  *
-  * @var array
-  */
+    /**
+     * Helpers to load
+     *
+     * @var array
+     */
     protected array $helpers = ['Html'];
 
     /**
