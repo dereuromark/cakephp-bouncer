@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bouncer\Model\Behavior;
 
 use ArrayObject;
+use Bouncer\Lib\ThreeWayMerge;
 use Bouncer\Model\Entity\BouncerRecord;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
@@ -809,6 +810,15 @@ class BouncerBehavior extends Behavior
     /**
      * Apply approved bouncer record changes to the actual table.
      *
+     * For edit proposals on stale records (where the source record has been modified
+     * since the proposal was created), this method automatically performs a 3-way merge
+     * to preserve both the owner's changes and the proposal's changes when possible.
+     *
+     * Options:
+     * - `autoMerge`: bool (default: true) - Whether to automatically perform 3-way merge for stale records.
+     *   Set to false if you want to handle merging manually before calling this method.
+     * - `skipFields`: array - Fields to skip during merge (default: ['id', 'created', 'modified', '_delete'])
+     *
      * @param \Bouncer\Model\Entity\BouncerRecord $bouncerRecord Bouncer record
      * @param array<string, mixed> $options Save options
      *
@@ -816,6 +826,38 @@ class BouncerBehavior extends Behavior
      */
     public function applyApprovedChanges($bouncerRecord, array $options = [])
     {
+        $autoMerge = $options['autoMerge'] ?? true;
+        unset($options['autoMerge']);
+
+        // Auto-merge stale edit proposals if not already merged
+        if (
+            $autoMerge
+            && !$bouncerRecord->hasMergedData()
+            && $bouncerRecord->isEditProposal()
+            && $bouncerRecord->canDetectStaleness()
+        ) {
+            $currentRecord = $this->_table->get($bouncerRecord->primary_key);
+            $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
+
+            if ($currentModified && $currentModified > $bouncerRecord->original_modified) {
+                // Record is stale - perform 3-way merge
+                $skipFields = $options['skipFields'] ?? ['id', 'created', 'modified', '_delete'];
+                unset($options['skipFields']);
+
+                $merger = new ThreeWayMerge();
+                $mergeResult = $merger->mergeArrays(
+                    $bouncerRecord->getOriginalData(),
+                    $currentRecord->toArray(),
+                    $bouncerRecord->getData(),
+                    $skipFields,
+                );
+
+                // Apply merged data (even if there are conflicts, we use the merged result
+                // which defaults to proposed values for conflicting fields)
+                $bouncerRecord->setMergedData($mergeResult['merged']);
+            }
+        }
+
         // Use merged data if available (for 3-way merge scenarios), otherwise use original data
         $data = $bouncerRecord->getMergedData();
 

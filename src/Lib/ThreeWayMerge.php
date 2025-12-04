@@ -406,4 +406,111 @@ class ThreeWayMerge
 
         return mb_substr($str, 0, $maxLen - 3) . '...';
     }
+
+    /**
+     * Perform a 3-way merge on arrays of data (entity fields).
+     *
+     * This merges field-by-field, using string merging for text fields
+     * when both sides have changed.
+     *
+     * @param array<string, mixed> $original The original data when draft was created
+     * @param array<string, mixed> $current The current live data
+     * @param array<string, mixed> $proposed The proposed changes
+     * @param array<string> $skipFields Fields to skip during merge (e.g., 'id', 'created', 'modified')
+     *
+     * @return array{merged: array<string, mixed>, conflicts: array<string, array>, autoMerged: array<string, array>, hasConflicts: bool}
+     */
+    public function mergeArrays(
+        array $original,
+        array $current,
+        array $proposed,
+        array $skipFields = ['id', 'created', 'modified', '_delete'],
+    ): array {
+        $conflicts = [];
+        $autoMerged = [];
+        $merged = $proposed;
+
+        $allFields = array_unique(array_merge(
+            array_keys($original),
+            array_keys($current),
+            array_keys($proposed),
+        ));
+
+        // Filter out skip fields
+        $allFields = array_filter($allFields, function ($field) use ($skipFields) {
+            return !in_array($field, $skipFields, true);
+        });
+
+        foreach ($allFields as $field) {
+            $origValue = $original[$field] ?? null;
+            $currValue = $current[$field] ?? null;
+            $propValue = $proposed[$field] ?? null;
+
+            // Skip fields not in the original proposal
+            if (!array_key_exists($field, $proposed)) {
+                continue;
+            }
+
+            // Skip if no changes
+            $currentChanged = $origValue !== $currValue;
+            $proposedChanged = $origValue !== $propValue;
+
+            if (!$currentChanged && !$proposedChanged) {
+                continue;
+            }
+
+            // If only one side changed, use that change
+            if (!$currentChanged) {
+                // Only proposed changed - keep proposed value (already in $merged)
+                continue;
+            }
+            if (!$proposedChanged) {
+                // Only current changed - use current value
+                $merged[$field] = $currValue;
+                $autoMerged[$field] = [
+                    'original' => $origValue,
+                    'current' => $currValue,
+                    'proposed' => $propValue,
+                    'merged' => $currValue,
+                    'reason' => 'current_only',
+                ];
+
+                continue;
+            }
+
+            // Both sides changed - attempt text merge for strings
+            if (is_string($origValue) && is_string($currValue) && is_string($propValue)) {
+                $mergeResult = $this->mergeStrings($origValue, $currValue, $propValue);
+
+                if ($mergeResult['status'] === self::MERGED) {
+                    $merged[$field] = $mergeResult['result'];
+                    $autoMerged[$field] = [
+                        'original' => $origValue,
+                        'current' => $currValue,
+                        'proposed' => $propValue,
+                        'merged' => $mergeResult['result'],
+                        'reason' => 'text_merge',
+                    ];
+
+                    continue;
+                }
+            }
+
+            // Real conflict - both changed to different values
+            $conflicts[$field] = [
+                'original' => $origValue,
+                'current' => $currValue,
+                'proposed' => $propValue,
+            ];
+            // Keep proposed value as default for conflicts
+            $merged[$field] = $propValue;
+        }
+
+        return [
+            'merged' => $merged,
+            'conflicts' => $conflicts,
+            'autoMerged' => $autoMerged,
+            'hasConflicts' => (bool)$conflicts,
+        ];
+    }
 }

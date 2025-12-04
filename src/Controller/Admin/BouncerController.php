@@ -356,8 +356,8 @@ class BouncerController extends AppController
                         return $this->redirect(['action' => 'resolve', $id]);
                     }
 
-                    // Update bouncer record with merged data
-                    $bouncerRecord->data = json_encode($conflict['merged'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                    // Set merged data - this prevents the behavior from auto-merging again
+                    $bouncerRecord->setMergedData($conflict['merged']);
                 }
             } catch (Exception $e) {
                 // Source record no longer exists - continue with approval (will fail gracefully)

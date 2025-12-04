@@ -1499,4 +1499,223 @@ class BouncerBehaviorTest extends TestCase
         $this->assertEquals('Articles', $bouncerRecord->source);
         $this->assertNotEquals('TestApp.Articles', $bouncerRecord->source);
     }
+
+    /**
+     * Test that applyApprovedChanges auto-merges stale edit proposals.
+     *
+     * Scenario:
+     * 1. Owner has content "Hello!!!! World" (original)
+     * 2. Contributor proposes change: "Hello!!!! Universe" (proposed - changes "World" to "Universe")
+     * 3. Owner edits their article: "Hello World" (current - removes "!!!!")
+     * 4. When approved, result should be "Hello Universe" (merged - both changes preserved)
+     *
+     * @return void
+     */
+    public function testApplyApprovedChangesAutoMergesStaleProposal(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        // Create original article
+        $originalBody = 'Hello!!!! World';
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => $originalBody,
+            'user_id' => 1,
+        ]);
+        $article = $this->Articles->save($article, ['bypassBouncer' => true]);
+        $this->assertNotFalse($article);
+        $articleId = $article->id;
+        // Store the original modified time (go back 1 second to ensure staleness detection)
+        $originalModified = $article->modified->subSeconds(1);
+
+        // Simulate a proposal that was created BEFORE owner edited
+        // Contributor changes "World" to "Universe" but keeps "!!!!"
+        $proposedBody = 'Hello!!!! Universe';
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $articleId,
+            'user_id' => 2, // Different user (contributor)
+            'status' => 'pending',
+            'data' => json_encode(['body' => $proposedBody]),
+            'original_data' => json_encode(['body' => $originalBody]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        // Owner edits their article - removes "!!!!"
+        $currentBody = 'Hello World';
+        $article = $this->Articles->get($articleId);
+        $article->body = $currentBody;
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+
+        // Verify article was updated
+        $article = $this->Articles->get($articleId);
+        $this->assertSame($currentBody, $article->body);
+
+        // Now apply the stale proposal - it should auto-merge
+        $bouncerRecord = $this->BouncerRecords->get($bouncerRecord->id);
+        $result = $this->Articles->getBehavior('Bouncer')->applyApprovedChanges($bouncerRecord);
+
+        $this->assertNotFalse($result);
+
+        // The merged result should be "Hello Universe"
+        // - Owner's removal of "!!!!" is preserved
+        // - Contributor's "World" -> "Universe" change is applied
+        $article = $this->Articles->get($articleId);
+        $expectedBody = 'Hello Universe';
+        $this->assertSame(
+            $expectedBody,
+            $article->body,
+            sprintf(
+                '3-way merge failed. Expected "%s", got "%s". Original: "%s", Current: "%s", Proposed: "%s"',
+                $expectedBody,
+                $article->body,
+                $originalBody,
+                $currentBody,
+                $proposedBody,
+            ),
+        );
+    }
+
+    /**
+     * Test that applyApprovedChanges can be configured to skip auto-merge.
+     *
+     * @return void
+     */
+    public function testApplyApprovedChangesAutoMergeCanBeDisabled(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        // Create original article
+        $originalBody = 'Hello!!!! World';
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => $originalBody,
+            'user_id' => 1,
+        ]);
+        $article = $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+        $originalModified = $article->modified->subSeconds(1);
+
+        // Create stale proposal
+        $proposedBody = 'Hello!!!! Universe';
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $articleId,
+            'user_id' => 2,
+            'status' => 'pending',
+            'data' => json_encode(['body' => $proposedBody]),
+            'original_data' => json_encode(['body' => $originalBody]),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        // Owner edits their article
+        $currentBody = 'Hello World';
+        $article = $this->Articles->get($articleId);
+        $article->body = $currentBody;
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+
+        // Apply with autoMerge disabled - should use proposed data as-is
+        $bouncerRecord = $this->BouncerRecords->get($bouncerRecord->id);
+        $result = $this->Articles->getBehavior('Bouncer')->applyApprovedChanges($bouncerRecord, ['autoMerge' => false]);
+
+        $this->assertNotFalse($result);
+
+        // Without auto-merge, the proposed value should be applied directly
+        $article = $this->Articles->get($articleId);
+        $this->assertSame($proposedBody, $article->body);
+    }
+
+    /**
+     * Test that pre-merged data takes precedence over auto-merge.
+     *
+     * @return void
+     */
+    public function testApplyApprovedChangesRespectsPreMergedData(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        // Create original article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $article = $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+        $originalModified = $article->modified->subSeconds(1);
+
+        // Create stale proposal
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $articleId,
+            'user_id' => 2,
+            'status' => 'pending',
+            'data' => json_encode(['body' => 'Proposed Body']),
+            'original_data' => json_encode(['body' => 'Original Body']),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        // Owner edits their article
+        $article = $this->Articles->get($articleId);
+        $article->body = 'Current Body';
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+
+        // Pre-set merged data - this should take precedence
+        $bouncerRecord = $this->BouncerRecords->get($bouncerRecord->id);
+        $bouncerRecord->setMergedData(['body' => 'Custom Merged Body']);
+
+        $result = $this->Articles->getBehavior('Bouncer')->applyApprovedChanges($bouncerRecord);
+
+        $this->assertNotFalse($result);
+
+        // The pre-merged data should be used, not auto-merge
+        $article = $this->Articles->get($articleId);
+        $this->assertSame('Custom Merged Body', $article->body);
+    }
+
+    /**
+     * Test that non-stale proposals don't trigger auto-merge.
+     *
+     * @return void
+     */
+    public function testApplyApprovedChangesNoMergeForFreshProposal(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        // Create original article
+        $article = $this->Articles->newEntity([
+            'title' => 'Test Article',
+            'body' => 'Original Body',
+            'user_id' => 1,
+        ]);
+        $article = $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+        // Set original_modified to the future so it's not stale
+        $originalModified = $article->modified->addSeconds(10);
+
+        // Create "fresh" proposal (original_modified is in the future)
+        $proposedBody = 'Proposed Body';
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => $articleId,
+            'user_id' => 2,
+            'status' => 'pending',
+            'data' => json_encode(['body' => $proposedBody]),
+            'original_data' => json_encode(['body' => 'Original Body']),
+            'original_modified' => $originalModified,
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        // Apply - since not stale, should just use proposed data
+        $bouncerRecord = $this->BouncerRecords->get($bouncerRecord->id);
+        $result = $this->Articles->getBehavior('Bouncer')->applyApprovedChanges($bouncerRecord);
+
+        $this->assertNotFalse($result);
+
+        $article = $this->Articles->get($articleId);
+        $this->assertSame($proposedBody, $article->body);
+    }
 }
