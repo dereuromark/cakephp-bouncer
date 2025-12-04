@@ -77,7 +77,7 @@
                                 <span class="badge bg-success">New</span>
                             <?php } ?>
                         </td>
-                        <td><?= $this->Number->format($bouncerRecord->user_id) ?></td>
+                        <td><?= h($bouncerRecord->user_id) ?></td>
                         <td>
                             <?php
                             $statusClass = match ($bouncerRecord->status) {
