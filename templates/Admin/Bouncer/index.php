@@ -71,7 +71,7 @@
                         <td><?= h($bouncerRecord->source) ?></td>
                         <td>
                             <?php if ($bouncerRecord->primary_key) { ?>
-                                <?= $this->Number->format($bouncerRecord->primary_key) ?>
+                                <?= h($bouncerRecord->primary_key) ?>
                                 <span class="badge bg-info">Edit</span>
                             <?php } else { ?>
                                 <span class="badge bg-success">New</span>
