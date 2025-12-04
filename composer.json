@@ -23,7 +23,8 @@
     "require": {
         "php": ">=8.2",
         "cakephp/orm": "^5.0.0",
-        "ext-json": "*"
+        "ext-json": "*",
+        "sebastian/diff": "^6.0 || ^7.0"
     },
     "require-dev": {
         "cakephp/cakephp": "^5.1.0",
