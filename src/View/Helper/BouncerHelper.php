@@ -9,9 +9,13 @@ use Bouncer\Model\Entity\BouncerRecord;
 use Cake\Datasource\EntityInterface;
 use Cake\I18n\DateTime;
 use Cake\View\Helper;
+use Jfcherng\Diff\DiffHelper;
 
 /**
  * Bouncer helper for displaying bouncer record changes in a human-readable format
+ *
+ * Uses jfcherng/php-diff for word-level diff rendering if available,
+ * falls back to DiffLib (sebastian/diff based) otherwise.
  *
  * @property \Cake\View\Helper\HtmlHelper $Html
  */
@@ -25,7 +29,107 @@ class BouncerHelper extends Helper
     protected array $helpers = ['Html'];
 
     /**
+     * Default configuration.
+     *
+     * @var array<string, mixed>
+     */
+    protected array $_defaultConfig = [
+        'differOptions' => [
+            'context' => 2,
+            'ignoreCase' => false,
+            'ignoreWhitespace' => false,
+        ],
+        'rendererOptions' => [
+            'detailLevel' => 'word',
+            'showHeader' => false,
+            'lineNumbers' => true,
+        ],
+    ];
+
+    /**
+     * Whether jfcherng/php-diff is available.
+     *
+     * @var bool|null
+     */
+    protected ?bool $_hasJfcherng = null;
+
+    /**
+     * Check if jfcherng/php-diff library is available.
+     *
+     * @return bool
+     */
+    protected function hasJfcherngDiff(): bool
+    {
+        if ($this->_hasJfcherng === null) {
+            $this->_hasJfcherng = class_exists(DiffHelper::class);
+        }
+
+        return $this->_hasJfcherng;
+    }
+
+    /**
+     * Render diff using jfcherng/php-diff.
+     *
+     * @param string $old Old text
+     * @param string $new New text
+     * @param string $renderer 'SideBySide' or 'Inline'
+     *
+     * @return string HTML output
+     */
+    protected function renderJfcherngDiff(string $old, string $new, string $renderer): string
+    {
+        /** @var array<string, mixed> $differOptions */
+        $differOptions = $this->getConfig('differOptions');
+        /** @var array<string, mixed> $rendererOptions */
+        $rendererOptions = $this->getConfig('rendererOptions');
+
+        return DiffHelper::calculate($old, $new, $renderer, $differOptions, $rendererOptions);
+    }
+
+    /**
+     * Render diff using fallback DiffLib.
+     *
+     * @param string $old Old text
+     * @param string $new New text
+     * @param string $renderer 'SideBySide' or 'Inline'
+     *
+     * @return string HTML output
+     */
+    protected function renderFallbackDiff(string $old, string $new, string $renderer): string
+    {
+        $diffLib = new DiffLib();
+        /** @var array<string, mixed> $differOptions */
+        $differOptions = $this->getConfig('differOptions');
+        $diffLib->contextLines = $differOptions['context'] ?? 3;
+
+        if ($renderer === 'SideBySide') {
+            return $diffLib->compareSideBySide($old, $new);
+        }
+
+        return $diffLib->compare($old, $new);
+    }
+
+    /**
+     * Render a diff between two strings.
+     *
+     * @param string $old Old text
+     * @param string $new New text
+     * @param string $renderer 'SideBySide' or 'Inline'
+     *
+     * @return string HTML output
+     */
+    protected function renderDiff(string $old, string $new, string $renderer): string
+    {
+        if ($this->hasJfcherngDiff()) {
+            return $this->renderJfcherngDiff($old, $new, $renderer);
+        }
+
+        return $this->renderFallbackDiff($old, $new, $renderer);
+    }
+
+    /**
      * @var int
+     * @deprecated Use $_defaultConfig['differOptions']['context'] instead
      */
     protected int $contextLines = 2;
 
@@ -48,9 +152,6 @@ class BouncerHelper extends Helper
         $currentData = $currentRecord->toArray();
         $allFields = array_unique(array_merge(array_keys($currentData), array_keys($proposedData)));
         sort($allFields);
-
-        $diffLib = new DiffLib();
-        $diffLib->contextLines = $this->contextLines;
 
         $diffs = [];
         foreach ($allFields as $field) {
@@ -78,8 +179,8 @@ class BouncerHelper extends Helper
                 'currentStr' => $currentStr,
                 'proposedStr' => $proposedStr,
                 'isLongText' => $isLongText,
-                'inline' => $isLongText ? $diffLib->compare($currentStr, $proposedStr) : null,
-                'sideBySide' => $isLongText ? $diffLib->compareSideBySide($currentStr, $proposedStr) : null,
+                'inline' => $isLongText ? $this->renderDiff($currentStr, $proposedStr, 'Inline') : null,
+                'sideBySide' => $isLongText ? $this->renderDiff($currentStr, $proposedStr, 'SideBySide') : null,
             ];
         }
 
