@@ -297,4 +297,102 @@ class BouncerRecordTest extends TestCase
         $this->assertEquals('Test reason', $entity->reason);
         $this->assertInstanceOf(DateTime::class, $entity->reviewed);
     }
+
+    /**
+     * Test isStale method returns true when source was modified after draft
+     *
+     * @return void
+     */
+    public function testIsStaleReturnsTrue(): void
+    {
+        $entity = new BouncerRecord([
+            'original_modified' => new DateTime('-1 hour'),
+        ]);
+
+        $currentEntity = new \Cake\ORM\Entity([
+            'modified' => new DateTime('now'),
+        ]);
+
+        $this->assertTrue($entity->isStale($currentEntity));
+    }
+
+    /**
+     * Test isStale method returns false when source was not modified
+     *
+     * @return void
+     */
+    public function testIsStaleReturnsFalse(): void
+    {
+        $entity = new BouncerRecord([
+            'original_modified' => new DateTime('+1 hour'),
+        ]);
+
+        $currentEntity = new \Cake\ORM\Entity([
+            'modified' => new DateTime('now'),
+        ]);
+
+        $this->assertFalse($entity->isStale($currentEntity));
+    }
+
+    /**
+     * Test isStale method returns false when no original_modified
+     *
+     * @return void
+     */
+    public function testIsStaleReturnsFalseWithoutOriginalModified(): void
+    {
+        $entity = new BouncerRecord([]);
+
+        $currentEntity = new \Cake\ORM\Entity([
+            'modified' => new DateTime('now'),
+        ]);
+
+        $this->assertFalse($entity->isStale($currentEntity));
+    }
+
+    /**
+     * Test buildMergeResult returns null when not stale
+     *
+     * @return void
+     */
+    public function testBuildMergeResultReturnsNullWhenNotStale(): void
+    {
+        $entity = new BouncerRecord([
+            'original_modified' => new DateTime('+1 hour'),
+            'data' => json_encode(['content' => 'proposed']),
+            'original_data' => json_encode(['content' => 'original']),
+        ]);
+
+        $currentEntity = new \Cake\ORM\Entity([
+            'modified' => new DateTime('now'),
+            'content' => 'current',
+        ]);
+
+        $this->assertNull($entity->buildMergeResult($currentEntity));
+    }
+
+    /**
+     * Test buildMergeResult returns merge result when stale
+     *
+     * @return void
+     */
+    public function testBuildMergeResultReturnsMergeWhenStale(): void
+    {
+        $entity = new BouncerRecord([
+            'original_modified' => new DateTime('-1 hour'),
+            'data' => json_encode(['content' => 'Hello!!!! Universe']),
+            'original_data' => json_encode(['content' => 'Hello!!!! World']),
+        ]);
+
+        $currentEntity = new \Cake\ORM\Entity([
+            'modified' => new DateTime('now'),
+            'content' => 'Hello World',
+        ]);
+
+        $result = $entity->buildMergeResult($currentEntity);
+
+        $this->assertNotNull($result);
+        $this->assertFalse($result['hasConflicts']);
+        $this->assertSame('Hello Universe', $result['merged']['content']);
+    }
 }

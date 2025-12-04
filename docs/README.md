@@ -343,9 +343,31 @@ $bouncerRecord->setMergedData($mergedData);
 $bouncer->applyApprovedChanges($bouncerRecord);
 ```
 
+### Using BouncerRecord Helper Methods
+
+The `BouncerRecord` entity provides convenient methods for staleness detection and merging:
+
+```php
+// Check if a draft is stale (source record was modified after draft creation)
+if ($bouncerRecord->isStale($currentEntity)) {
+    // Handle stale draft
+}
+
+// Build merge result (returns null if not stale)
+$mergeResult = $bouncerRecord->buildMergeResult($currentEntity);
+if ($mergeResult) {
+    // $mergeResult contains: merged, conflicts, autoMerged, hasConflicts
+    if ($mergeResult['hasConflicts']) {
+        // Handle conflicts
+    } else {
+        // Use $mergeResult['merged'] for the auto-merged data
+    }
+}
+```
+
 ### Using ThreeWayMerge Directly
 
-For display purposes or custom merge logic:
+For advanced use cases or custom merge logic:
 
 ```php
 use Bouncer\Lib\ThreeWayMerge;
