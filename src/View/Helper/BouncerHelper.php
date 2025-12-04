@@ -361,15 +361,21 @@ class BouncerHelper extends Helper
     /**
      * Get CSS styles for diff rendering.
      *
+     * Includes jfcherng/php-diff built-in styles (if available) plus custom overrides.
+     *
      * @return string CSS styles
      */
     public function diffStyles(): string
     {
-        return <<<CSS
-<style>
+        $libraryStyles = '';
+        if ($this->hasJfcherngDiff()) {
+            $libraryStyles = DiffHelper::getStyleSheet();
+        }
+
+        $customStyles = <<<'CSS'
 .diff-wrapper { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 13px; }
 .diff-wrapper th, .diff-wrapper td { padding: 4px 8px; border: 1px solid #dee2e6; vertical-align: top; }
-.diff-wrapper .line-num { width: 40px; background: #f8f9fa; color: #6c757d; text-align: right; }
+.diff-wrapper .line-num { width: 40px; background: #f8f9fa; color: #6c757d; text-align: right; user-select: none; }
 .diff-wrapper .sign { width: 20px; text-align: center; font-weight: bold; }
 .diff-wrapper tr.unchanged td { background: #f8f9fa; }
 .diff-wrapper tr.added td { background: #e6ffec; }
@@ -383,8 +389,9 @@ class BouncerHelper extends Helper
 /* Side-by-side specific */
 .diff-side-by-side th:nth-child(2), .diff-side-by-side td:nth-child(2) { width: 45%; }
 .diff-side-by-side th:nth-child(4), .diff-side-by-side td:nth-child(4) { width: 45%; }
-</style>
 CSS;
+
+        return '<style>' . $libraryStyles . "\n" . $customStyles . '</style>';
     }
 
     /**
