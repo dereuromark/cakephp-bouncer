@@ -184,11 +184,11 @@ class BouncerController extends AppController
 
             if ($mergedData) {
                 // Update bouncer record with merged data
-                $bouncerRecord->data = json_encode($mergedData, JSON_THROW_ON_ERROR);
+                $bouncerRecord->data = json_encode($mergedData, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
                 // Update original_modified to current time to mark conflict as resolved
                 $bouncerRecord->original_modified = $currentRecord->get('modified') ?? $currentRecord->get('created');
                 // Update original_data to current state
-                $bouncerRecord->original_data = json_encode($currentRecord->toArray(), JSON_THROW_ON_ERROR);
+                $bouncerRecord->original_data = json_encode($currentRecord->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
                 if ($this->BouncerRecords->save($bouncerRecord)) {
                     $this->Flash->success('Conflict resolved. Ready for final approval.');
@@ -357,7 +357,7 @@ class BouncerController extends AppController
                     }
 
                     // Update bouncer record with merged data
-                    $bouncerRecord->data = json_encode($conflict['merged'], JSON_THROW_ON_ERROR);
+                    $bouncerRecord->data = json_encode($conflict['merged'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
                 }
             } catch (Exception $e) {
                 // Source record no longer exists - continue with approval (will fail gracefully)

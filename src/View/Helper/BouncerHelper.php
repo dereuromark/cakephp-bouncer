@@ -215,7 +215,7 @@ class BouncerHelper extends Helper
         $output = '<details class="mt-3">';
         $output .= '<summary><strong>' . __('Raw JSON Data') . '</strong></summary>';
         $output .= '<pre class="bg-light p-3 mt-2"><code>';
-        $output .= h(json_encode($bouncerRecord->getData(), JSON_PRETTY_PRINT));
+        $output .= h(json_encode($bouncerRecord->getData(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         $output .= '</code></pre></details>';
 
         return $output;
@@ -362,14 +362,14 @@ JS;
         }
 
         if (is_array($value)) {
-            return json_encode($value, JSON_PRETTY_PRINT) ?: '';
+            return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '';
         }
 
         if (is_scalar($value)) {
             return (string)$value;
         }
 
-        return json_encode($value) ?: '';
+        return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '';
     }
 
     /**
@@ -392,7 +392,7 @@ JS;
         }
 
         if (is_array($value)) {
-            return '<pre class="mb-0"><code>' . h(json_encode($value, JSON_PRETTY_PRINT)) . '</code></pre>';
+            return '<pre class="mb-0"><code>' . h(json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . '</code></pre>';
         }
 
         if (is_string($value) && strlen($value) > 100) {

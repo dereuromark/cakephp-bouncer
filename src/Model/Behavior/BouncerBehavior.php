@@ -24,6 +24,13 @@ class BouncerBehavior extends Behavior
     use LocatorAwareTrait;
 
     /**
+     * Default JSON encoding flags for storing data.
+     *
+     * @var int
+     */
+    public const JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+
+    /**
      * Default configuration.
      *
      * @var array<string, mixed>
@@ -427,8 +434,8 @@ class BouncerBehavior extends Behavior
         )->first();
 
         // Store current entity state as original_data
-        $originalData = json_encode($entity->toArray());
-        $data = json_encode(['_delete' => true]); // Mark as deletion
+        $originalData = json_encode($entity->toArray(), self::JSON_FLAGS);
+        $data = json_encode(['_delete' => true], self::JSON_FLAGS); // Mark as deletion
         $note = $this->getNote($options);
         // Capture modification timestamp for conflict detection
         $originalModified = $entity->get('modified') ?? $entity->get('created');
@@ -540,7 +547,7 @@ class BouncerBehavior extends Behavior
         // Remove internal fields
         unset($data['created'], $data['modified']);
 
-        $encoded = json_encode($data);
+        $encoded = json_encode($data, self::JSON_FLAGS);
         if ($encoded === false) {
             throw new RuntimeException('Failed to encode entity data');
         }
