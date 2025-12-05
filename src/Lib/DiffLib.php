@@ -35,7 +35,10 @@ class DiffLib
 
         // Check if this is a whitespace/newline-only change
         if ($this->isWhitespaceOnlyChange($old, $new)) {
-            return $this->renderWhitespaceChange($old, $new);
+            $whitespaceHtml = $this->renderWhitespaceChange($old, $new);
+            if ($whitespaceHtml !== null) {
+                return $whitespaceHtml;
+            }
         }
 
         return $this->renderInline($old, $new);
@@ -57,7 +60,10 @@ class DiffLib
 
         // Check if this is a whitespace/newline-only change
         if ($this->isWhitespaceOnlyChange($old, $new)) {
-            return $this->renderWhitespaceChange($old, $new);
+            $whitespaceHtml = $this->renderWhitespaceChange($old, $new);
+            if ($whitespaceHtml !== null) {
+                return $whitespaceHtml;
+            }
         }
 
         return $this->renderSideBySide($old, $new);
