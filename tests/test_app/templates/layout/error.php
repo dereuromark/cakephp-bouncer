@@ -1,6 +1,6 @@
 <?php
 /**
- * Error layout for testing
+ * @var \Cake\View\View $this
  */
 ?>
 <!DOCTYPE html>

@@ -1,6 +1,7 @@
 <?php
 /**
- * Error 500 template for testing
+ * @var \Cake\View\View $this
+ * @var string $message
  */
 ?>
 <h2>Error</h2>
