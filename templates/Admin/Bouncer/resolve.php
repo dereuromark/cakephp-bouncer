@@ -3,7 +3,7 @@
  * @var \App\View\AppView $this
  * @var \Bouncer\Model\Entity\BouncerRecord $bouncerRecord
  * @var \Cake\Datasource\EntityInterface $currentRecord
- * @var array $conflict
+ * @var array<string, mixed> $conflict
  */
 
 $formatValue = function ($value, bool $preserveNewlines = true) {

@@ -3,7 +3,7 @@
  * @var \App\View\AppView $this
  * @var \Bouncer\Model\Entity\BouncerRecord $bouncerRecord
  * @var \Cake\Datasource\EntityInterface|null $currentRecord
- * @var array|null $conflict
+ * @var array<string, mixed>|null $conflict
  */
 
 $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
