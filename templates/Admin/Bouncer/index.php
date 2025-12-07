@@ -57,7 +57,7 @@
                 <tr>
                     <th><?= $this->Paginator->sort('id') ?></th>
                     <th><?= $this->Paginator->sort('source', 'Source') ?></th>
-                    <th><?= $this->Paginator->sort('primary_key', 'Record ID') ?></th>
+                    <th><?= $this->Paginator->sort('primary_key', 'Record') ?></th>
                     <th><?= $this->Paginator->sort('user_id', 'Submitted By') ?></th>
                     <th><?= $this->Paginator->sort('status') ?></th>
                     <th><?= $this->Paginator->sort('created') ?></th>
@@ -92,19 +92,7 @@
                         </td>
                         <td><?= h($bouncerRecord->created) ?></td>
                         <td class="actions">
-                            <?= $this->Html->link(__('Review'), ['action' => 'view', $bouncerRecord->id], ['class' => 'btn btn-sm btn-primary']) ?>
-                            <?php if ($bouncerRecord->isPending()) { ?>
-                                <?= $this->Form->postLink(
-                                    __('Approve'),
-                                    ['action' => 'approve', $bouncerRecord->id],
-                                    ['confirm' => __('Are you sure you want to approve this change?'), 'class' => 'btn btn-sm btn-success'],
-                                ) ?>
-                                <?= $this->Form->postLink(
-                                    __('Reject'),
-                                    ['action' => 'reject', $bouncerRecord->id],
-                                    ['confirm' => __('Are you sure you want to reject this change?'), 'class' => 'btn btn-sm btn-danger'],
-                                ) ?>
-                            <?php } ?>
+                            <?= $this->Html->link(__('Review'), ['action' => 'view', $bouncerRecord->id], ['class' => 'btn btn-sm btn-' . ($bouncerRecord->isPending() ? 'primary' : 'secondary')]) ?>
                         </td>
                     </tr>
                 <?php } ?>
