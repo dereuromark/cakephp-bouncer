@@ -377,7 +377,6 @@ class BouncerController extends AppController
                 }
 
                 /** @var \Bouncer\Model\Behavior\BouncerBehavior $behavior */
-                /** @phpstan-ignore-next-line */
                 $behavior = $sourceTable->getBehavior('Bouncer');
                 $entity = $behavior->applyApprovedChanges($bouncerRecord);
 
