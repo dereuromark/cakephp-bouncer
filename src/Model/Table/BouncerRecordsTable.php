@@ -142,6 +142,12 @@ class BouncerRecordsTable extends Table
             ->orderBy(['created' => 'DESC']);
 
         if ($userId !== null) {
+            // Handle compound format "id:displayName" - extract just the ID
+            $userIdStr = (string)$userId;
+            if (str_contains($userIdStr, ':')) {
+                $parts = explode(':', $userIdStr, 2);
+                $userId = $parts[0];
+            }
             $query->where(['user_id' => $userId]);
         }
 

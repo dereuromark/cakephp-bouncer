@@ -51,8 +51,8 @@ $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
                             <td><?= $this->Number->format($bouncerRecord->id) ?></td>
                         </tr>
                         <tr>
-                            <th><?= __('Table') ?></th>
-                            <td><?= h($bouncerRecord->source) ?></td>
+                            <th><?= __('Source') ?></th>
+                            <td><code><?= h($bouncerRecord->source) ?></code></td>
                         </tr>
                         <tr>
                             <th><?= __('Record Type') ?></th>
@@ -68,7 +68,7 @@ $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
                     <table class="table table-sm">
                         <tr>
                             <th><?= __('Submitted By') ?></th>
-                            <td>User #<?= h($bouncerRecord->user_id) ?></td>
+                            <td><?= $this->Bouncer->formatUser($bouncerRecord->user_id, $bouncerRecord->user_display) ?></td>
                         </tr>
                         <tr>
                             <th><?= __('Submitted') ?></th>
@@ -81,7 +81,7 @@ $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
                         <?php if ($bouncerRecord->reviewer_id) { ?>
                             <tr>
                                 <th><?= __('Reviewed By') ?></th>
-                            <td>User #<?= h($bouncerRecord->reviewer_id) ?></td>
+                                <td><?= $this->Bouncer->formatUser($bouncerRecord->reviewer_id, $bouncerRecord->reviewer_display) ?></td>
                             </tr>
                             <tr>
                                 <th><?= __('Reviewed') ?></th>

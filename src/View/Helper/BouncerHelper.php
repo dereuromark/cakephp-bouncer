@@ -6,10 +6,12 @@ namespace Bouncer\View\Helper;
 
 use Bouncer\Lib\DiffLib;
 use Bouncer\Model\Entity\BouncerRecord;
+use Cake\Core\Configure;
 use Cake\Datasource\EntityInterface;
 use Cake\I18n\DateTime;
 use Cake\View\Helper;
 use Jfcherng\Diff\DiffHelper;
+use function Cake\Core\pluginSplit;
 
 /**
  * Bouncer helper for displaying bouncer record changes in a human-readable format
@@ -384,7 +386,9 @@ class BouncerHelper extends Helper
             return '<span class="badge bg-success">' . __('New Record') . '</span>';
         }
 
-        return '<span class="badge bg-info">' . __('Edit to Record #{0}', $bouncerRecord->primary_key) . '</span>';
+        $recordLink = $this->formatRecord($bouncerRecord->source, $bouncerRecord->primary_key);
+
+        return '<span class="badge bg-info">' . __('Edit to Record') . '</span> ' . $recordLink;
     }
 
     /**
@@ -541,5 +545,154 @@ JS;
         }
 
         return h((string)$value);
+    }
+
+    /**
+     * Format user for display, optionally linking to user record.
+     *
+     * Configure linking via `Bouncer.linkUser`:
+     * - String pattern: '/admin/users/view/{user}' - placeholders: {user}
+     * - Callable: function($userId) { return '/admin/users/view/' . $userId; }
+     * - Array URL: ['prefix' => 'Admin', 'controller' => 'Users', 'action' => 'view', '{user}']
+     *
+     * @param string|int|null $userId User identifier
+     * @param string|null $displayName Optional display name (from user_display column)
+     *
+     * @return string HTML output
+     */
+    public function formatUser(string|int|null $userId, ?string $displayName = null): string
+    {
+        if ($userId === null || $userId === '') {
+            return '<em class="text-muted">N/A</em>';
+        }
+
+        $label = $displayName ?: __('User #{0}', $userId);
+
+        $linkConfig = Configure::read('Bouncer.linkUser');
+        if ($linkConfig) {
+            $url = $this->buildUrl($linkConfig, ['{user}' => (string)$userId]);
+            if ($url) {
+                return $this->Html->link($label, $url);
+            }
+        }
+
+        return h($label);
+    }
+
+    /**
+     * Format record for display, optionally linking to the record.
+     *
+     * Configure linking via `Bouncer.linkRecord`:
+     * - String pattern: '/admin/{table}/view/{primary_key}' - placeholders: {source}, {plugin}, {table}, {primary_key}
+     * - Callable: function($source, $primaryKey, $plugin, $tableName) { return [...]; }
+     * - Array URL: ['plugin' => '{plugin}', 'controller' => '{table}', 'action' => 'view', '{primary_key}']
+     *
+     * For plugin sources (e.g., 'Community.Stories'):
+     * - {source} = 'Community.Stories' (full source)
+     * - {plugin} = 'Community' (or false if no plugin)
+     * - {table} = 'Stories' (table name only)
+     *
+     * @param string $source Table/source name (e.g., 'Articles', 'Community.Stories')
+     * @param string|int|null $primaryKey Primary key value
+     *
+     * @return string HTML output
+     */
+    public function formatRecord(string $source, string|int|null $primaryKey): string
+    {
+        if ($primaryKey === null) {
+            return '<span class="badge bg-success">' . __('New') . '</span>';
+        }
+
+        // Extract plugin and table name from source
+        [$plugin, $tableName] = pluginSplit($source);
+
+        $linkConfig = Configure::read('Bouncer.linkRecord');
+        if ($linkConfig) {
+            $url = $this->buildRecordUrl($linkConfig, $source, $plugin, $tableName, (string)$primaryKey);
+            if ($url) {
+                return $this->Html->link(h($primaryKey), $url);
+            }
+        }
+
+        return h((string)$primaryKey);
+    }
+
+    /**
+     * Build URL from configuration with placeholder replacement.
+     *
+     * @param callable|array|string $linkConfig Link configuration
+     * @param array<string, string> $replacements Placeholder replacements
+     *
+     * @return array|string|null URL or null if no link
+     */
+    protected function buildUrl(
+        callable|string|array $linkConfig,
+        array $replacements,
+    ): string|array|null {
+        if (is_callable($linkConfig)) {
+            return $linkConfig(...array_values($replacements));
+        }
+
+        if (is_string($linkConfig)) {
+            return str_replace(array_keys($replacements), array_values($replacements), $linkConfig);
+        }
+
+        // Replace placeholders in array values
+        return array_map(function ($value) use ($replacements) {
+            if (is_string($value) && isset($replacements[$value])) {
+                return $replacements[$value];
+            }
+
+            return $value;
+        }, $linkConfig);
+    }
+
+    /**
+     * Build URL for record link.
+     *
+     * @param callable|array|string $linkConfig Link configuration
+     * @param string $source Full source name (e.g., 'Community.Stories')
+     * @param string|null $plugin Plugin name or null
+     * @param string $tableName Table name without plugin prefix (e.g., 'Stories')
+     * @param string $primaryKey Primary key value
+     *
+     * @return array|string|null URL or null if no link
+     */
+    protected function buildRecordUrl(
+        callable|string|array $linkConfig,
+        string $source,
+        ?string $plugin,
+        string $tableName,
+        string $primaryKey,
+    ): string|array|null {
+        if (is_callable($linkConfig)) {
+            return $linkConfig($source, $primaryKey, $plugin, $tableName);
+        }
+
+        $replacements = [
+            '{source}' => $source,
+            '{plugin}' => $plugin ?: '',
+            '{table}' => $tableName,
+            '{primary_key}' => $primaryKey,
+        ];
+
+        if (is_string($linkConfig)) {
+            return str_replace(array_keys($replacements), array_values($replacements), $linkConfig);
+        }
+
+        // Replace placeholders in array values, handle plugin specially for routing
+        $result = [];
+        foreach ($linkConfig as $key => $value) {
+            if ($key === 'plugin' && $value === '{plugin}') {
+                // Set plugin to false if not defined (CakePHP routing convention)
+                $result[$key] = $plugin ?: false;
+            } elseif (is_string($value) && isset($replacements[$value])) {
+                $result[$key] = $replacements[$value];
+            } else {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 }

@@ -31,9 +31,9 @@
                 <div class="col-md-3">
                     <?= $this->Form->control('source', [
                         'options' => array_combine($sources, $sources),
-                        'empty' => 'All Tables',
+                        'empty' => 'All Sources',
                         'default' => $source,
-                        'label' => 'Table',
+                        'label' => 'Source',
                     ]) ?>
                 </div>
                 <div class="col-md-3">
@@ -56,7 +56,7 @@
             <thead>
                 <tr>
                     <th><?= $this->Paginator->sort('id') ?></th>
-                    <th><?= $this->Paginator->sort('source', 'Table') ?></th>
+                    <th><?= $this->Paginator->sort('source', 'Source') ?></th>
                     <th><?= $this->Paginator->sort('primary_key', 'Record ID') ?></th>
                     <th><?= $this->Paginator->sort('user_id', 'Submitted By') ?></th>
                     <th><?= $this->Paginator->sort('status') ?></th>
@@ -68,16 +68,16 @@
                 <?php foreach ($bouncerRecords as $bouncerRecord) { ?>
                     <tr>
                         <td><?= $this->Number->format($bouncerRecord->id) ?></td>
-                        <td><?= h($bouncerRecord->source) ?></td>
+                        <td><code><?= h($bouncerRecord->source) ?></code></td>
                         <td>
                             <?php if ($bouncerRecord->primary_key) { ?>
-                                <?= h($bouncerRecord->primary_key) ?>
+                                <?= $this->Bouncer->formatRecord($bouncerRecord->source, $bouncerRecord->primary_key) ?>
                                 <span class="badge bg-info">Edit</span>
                             <?php } else { ?>
                                 <span class="badge bg-success">New</span>
                             <?php } ?>
                         </td>
-                        <td><?= h($bouncerRecord->user_id) ?></td>
+                        <td><?= $this->Bouncer->formatUser($bouncerRecord->user_id, $bouncerRecord->user_display) ?></td>
                         <td>
                             <?php
                             $statusClass = match ($bouncerRecord->status) {

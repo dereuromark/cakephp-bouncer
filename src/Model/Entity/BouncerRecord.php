@@ -15,7 +15,9 @@ use Cake\ORM\Entity;
  * @property string $source
  * @property int|string|null $primary_key
  * @property int|string $user_id
+ * @property string|null $user_display
  * @property int|string|null $reviewer_id
+ * @property string|null $reviewer_display
  * @property string $status
  * @property string $data
  * @property string|null $original_data
@@ -37,7 +39,9 @@ class BouncerRecord extends Entity
         'source' => true,
         'primary_key' => true,
         'user_id' => true,
+        'user_display' => true,
         'reviewer_id' => true,
+        'reviewer_display' => true,
         'status' => true,
         'data' => true,
         'original_data' => true,

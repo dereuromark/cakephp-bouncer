@@ -231,6 +231,43 @@ This creates two audit trails:
 1. **Bouncer approval workflow** - Who proposed, when, approval/rejection
 2. **Actual data changes** - When approved changes are applied to main table
 
+## Customizing the Admin UI
+
+### Linking Users and Records
+
+The admin interface can display clickable links to users and source records. Configure in your `config/app.php`:
+
+```php
+'Bouncer' => [
+    // Link to user profile/admin page
+    'linkUser' => ['prefix' => 'Admin', 'controller' => 'Users', 'action' => 'view', '{user}'],
+
+    // Link to source records (supports plugin models)
+    'linkRecord' => function ($source, $primaryKey, $plugin, $tableName) {
+        return [
+            'plugin' => $plugin ?: false,
+            'prefix' => 'Admin',
+            'controller' => $tableName,
+            'action' => 'view',
+            $primaryKey,
+        ];
+    },
+],
+```
+
+Available placeholders for `linkRecord`:
+- `{source}`: Full source name (e.g., "Community.Stories")
+- `{plugin}`: Plugin name or empty string (e.g., "Community")
+- `{table}`: Table name without plugin (e.g., "Stories")
+- `{primary_key}`: The record's primary key
+
+For `linkUser`:
+- `{user}`: The user ID
+
+### User Display Names
+
+To show user names instead of just IDs, populate the `user_display` and `reviewer_display` columns when creating bouncer records. You can do this by extending the behavior or in your application's save logic.
+
 ## How It Works
 
 ### Workflow Overview
@@ -248,10 +285,12 @@ This creates two audit trails:
 ### Database Schema
 
 The \`bouncer_records\` table stores:
-- \`source\`: Table name (e.g., "Articles")
+- \`source\`: Model name (e.g., "Articles", "Community.Stories" for plugins)
 - \`primary_key\`: Record ID (NULL for new records)
-- \`user_id\`: Who proposed the change
-- \`reviewer_id\`: Who approved/rejected
+- \`user_id\`: Who proposed the change (foreign key)
+- \`user_display\`: Optional display name for the user
+- \`reviewer_id\`: Who approved/rejected (foreign key)
+- \`reviewer_display\`: Optional display name for the reviewer
 - \`status\`: pending/approved/rejected/superseded
 - \`data\`: JSON serialized proposed changes
 - \`original_data\`: JSON serialized original data (for edits)

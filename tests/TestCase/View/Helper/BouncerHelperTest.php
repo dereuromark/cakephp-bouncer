@@ -198,6 +198,7 @@ class BouncerHelperTest extends TestCase
         $this->assertStringContainsString('bg-success', $result);
 
         $editRecord = new BouncerRecord([
+            'source' => 'Articles',
             'primary_key' => 42,
         ]);
         $result = $this->helper->recordTypeBadge($editRecord);

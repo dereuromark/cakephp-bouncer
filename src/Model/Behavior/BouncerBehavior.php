@@ -246,7 +246,7 @@ class BouncerBehavior extends Behavior
         $primaryKeyField = $this->_table->getPrimaryKey();
         $primaryKey = $isNew ? null : $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
 
-        $source = $this->_table->getAlias();
+        $source = $this->_table->getRegistryAlias();
 
         // Check if user already has a pending draft
         $existingDraft = $bouncerTable->findPendingForRecord(
@@ -268,6 +268,7 @@ class BouncerBehavior extends Behavior
         }
 
         $note = $this->getNote($options);
+        $userDisplay = $this->getUserDisplay($options);
 
         if ($existingDraft) {
             // Check if existing draft is a delete (different type)
@@ -280,6 +281,7 @@ class BouncerBehavior extends Behavior
                     'source' => $source,
                     'primary_key' => $primaryKey,
                     'user_id' => $userId,
+                    'user_display' => $userDisplay,
                     'status' => 'pending',
                     'data' => $data,
                     'original_data' => $originalData,
@@ -366,6 +368,7 @@ class BouncerBehavior extends Behavior
                 'source' => $source,
                 'primary_key' => $primaryKey,
                 'user_id' => $userId,
+                'user_display' => $userDisplay,
                 'status' => 'pending',
                 'data' => $data,
                 'original_data' => $originalData,
@@ -432,7 +435,7 @@ class BouncerBehavior extends Behavior
 
         $primaryKeyField = $this->_table->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
-        $source = $this->_table->getAlias();
+        $source = $this->_table->getRegistryAlias();
 
         // Check if user already has a pending draft for this record
         $existingDraft = $bouncerTable->findPendingForRecord(
@@ -445,6 +448,7 @@ class BouncerBehavior extends Behavior
         $originalData = json_encode($entity->toArray(), self::JSON_FLAGS);
         $data = json_encode(['_delete' => true], self::JSON_FLAGS); // Mark as deletion
         $note = $this->getNote($options);
+        $userDisplay = $this->getUserDisplay($options);
         // Capture modification timestamp for conflict detection
         $originalModified = $entity->get('modified') ?? $entity->get('created');
 
@@ -473,6 +477,7 @@ class BouncerBehavior extends Behavior
                     'source' => $source,
                     'primary_key' => $primaryKey,
                     'user_id' => $userId,
+                    'user_display' => $userDisplay,
                     'status' => 'pending',
                     'data' => $data,
                     'original_data' => $originalData,
@@ -490,6 +495,7 @@ class BouncerBehavior extends Behavior
                 'source' => $source,
                 'primary_key' => $primaryKey,
                 'user_id' => $userId,
+                'user_display' => $userDisplay,
                 'status' => 'pending',
                 'data' => $data,
                 'original_data' => $originalData,
@@ -567,6 +573,7 @@ class BouncerBehavior extends Behavior
      * Get user ID from entity or options.
      *
      * Supports both integer and string (UUID) user IDs.
+     * Also parses compound format "id:displayName" if present.
      *
      * @param \Cake\Datasource\EntityInterface $entity Entity
      * @param \ArrayObject $options Options
@@ -579,12 +586,49 @@ class BouncerBehavior extends Behavior
 
         // Check options first
         if (isset($options['bouncerUserId'])) {
-            return $options['bouncerUserId'];
+            $userId = $options['bouncerUserId'];
+            // Parse compound format "id:displayName"
+            $userIdStr = (string)$userId;
+            if (str_contains($userIdStr, ':')) {
+                $parts = explode(':', $userIdStr, 2);
+
+                return $parts[0]; // Return just the ID part
+            }
+
+            return $userId;
         }
 
         // Check entity
         if ($entity->has($userField)) {
             return $entity->get($userField);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get user display name from options.
+     *
+     * Parses compound format "id:displayName" if present in bouncerUserId.
+     *
+     * @param \ArrayObject $options Options
+     *
+     * @return string|null
+     */
+    protected function getUserDisplay(ArrayObject $options): ?string
+    {
+        if (isset($options['bouncerUserDisplay'])) {
+            return (string)$options['bouncerUserDisplay'];
+        }
+
+        // Parse from compound format in bouncerUserId
+        if (isset($options['bouncerUserId'])) {
+            $userIdStr = (string)$options['bouncerUserId'];
+            if (str_contains($userIdStr, ':')) {
+                $parts = explode(':', $userIdStr, 2);
+
+                return $parts[1] ?? null;
+            }
         }
 
         return null;
@@ -699,7 +743,7 @@ class BouncerBehavior extends Behavior
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
         $existingDraft = $bouncerTable->findPendingForRecord(
-            $this->_table->getAlias(),
+            $this->_table->getRegistryAlias(),
             $primaryKey,
             $userId,
         )->first();
@@ -727,7 +771,7 @@ class BouncerBehavior extends Behavior
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
         return $bouncerTable->findPendingForRecord(
-            $this->_table->getAlias(),
+            $this->_table->getRegistryAlias(),
             $primaryKey,
             $userId,
         )->first();
@@ -753,7 +797,7 @@ class BouncerBehavior extends Behavior
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
         return $bouncerTable->findPendingForRecord(
-            $this->_table->getAlias(),
+            $this->_table->getRegistryAlias(),
             $primaryKey,
             $userId,
         )->count() > 0;

@@ -95,7 +95,7 @@ class BouncerBehaviorTest extends TestCase
         // Bouncer record should be created
         $bouncerRecord = $this->BouncerRecords->find()->first();
         $this->assertNotNull($bouncerRecord);
-        $this->assertEquals('Articles', $bouncerRecord->source);
+        $this->assertEquals('TestApp.Articles', $bouncerRecord->source);
         $this->assertNull($bouncerRecord->primary_key);
         $this->assertEquals('pending', $bouncerRecord->status);
         $this->assertEquals(1, $bouncerRecord->user_id);
@@ -135,7 +135,7 @@ class BouncerBehaviorTest extends TestCase
         // Bouncer record should be created
         $bouncerRecord = $this->BouncerRecords->find()->first();
         $this->assertNotNull($bouncerRecord);
-        $this->assertEquals('Articles', $bouncerRecord->source);
+        $this->assertEquals('TestApp.Articles', $bouncerRecord->source);
         $this->assertEquals($articleId, $bouncerRecord->primary_key);
         $this->assertEquals('pending', $bouncerRecord->status);
         $this->assertEquals(2, $bouncerRecord->user_id);
@@ -262,7 +262,7 @@ class BouncerBehaviorTest extends TestCase
         $draft = $this->Articles->getBehavior('Bouncer')->loadDraft($articleId, 1);
 
         $this->assertNotNull($draft);
-        $this->assertEquals('Articles', $draft->source);
+        $this->assertEquals('TestApp.Articles', $draft->source);
         $this->assertEquals($articleId, $draft->primary_key);
 
         $draftData = $draft->getData();
@@ -479,7 +479,7 @@ class BouncerBehaviorTest extends TestCase
         // Bouncer record should be created
         $bouncerRecord = $this->BouncerRecords->find()->first();
         $this->assertNotNull($bouncerRecord);
-        $this->assertEquals('Articles', $bouncerRecord->source);
+        $this->assertEquals('TestApp.Articles', $bouncerRecord->source);
         $this->assertEquals($articleId, $bouncerRecord->primary_key);
         $this->assertEquals('pending', $bouncerRecord->status);
         $this->assertEquals(2, $bouncerRecord->user_id);
@@ -649,7 +649,7 @@ class BouncerBehaviorTest extends TestCase
         $bouncerRecord = $this->Articles->getBehavior('Bouncer')->getLastBouncerRecord();
 
         $this->assertNotNull($bouncerRecord);
-        $this->assertEquals('Articles', $bouncerRecord->source);
+        $this->assertEquals('TestApp.Articles', $bouncerRecord->source);
         $this->assertEquals($articleId, $bouncerRecord->primary_key);
 
         // Verify it's a delete operation
@@ -1468,8 +1468,8 @@ class BouncerBehaviorTest extends TestCase
     /**
      * Test that source alias is consistent between create and lookup
      *
-     * This ensures that drafts created with getAlias() can be found by
-     * removeRevertedDraft which should also use getAlias().
+     * This ensures that drafts created with getRegistryAlias() can be found by
+     * removeRevertedDraft which should also use getRegistryAlias().
      *
      * @return void
      */
@@ -1493,11 +1493,10 @@ class BouncerBehaviorTest extends TestCase
         $article->title = 'Changed';
         $this->Articles->save($article, ['bouncerUserId' => 1]);
 
-        // Verify the source is the simple alias, not the registry alias
+        // Verify the source is the full registry alias (including plugin prefix)
         $bouncerRecord = $this->BouncerRecords->find()->first();
         $this->assertNotNull($bouncerRecord);
-        $this->assertEquals('Articles', $bouncerRecord->source);
-        $this->assertNotEquals('TestApp.Articles', $bouncerRecord->source);
+        $this->assertEquals('TestApp.Articles', $bouncerRecord->source);
     }
 
     /**
