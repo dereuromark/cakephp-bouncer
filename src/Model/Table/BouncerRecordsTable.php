@@ -15,16 +15,17 @@ use Cake\Validation\Validator;
  * @method \Bouncer\Model\Entity\BouncerRecord newEntity(array $data, array $options = [])
  * @method array<\Bouncer\Model\Entity\BouncerRecord> newEntities(array $data, array $options = [])
  * @method \Bouncer\Model\Entity\BouncerRecord get(mixed $primaryKey, array|string $finder = 'all', \Psr\SimpleCache\CacheInterface|string|null $cache = null, \Closure|string|null $cacheKey = null, mixed ...$args)
- * @method \Bouncer\Model\Entity\BouncerRecord findOrCreate($search, ?callable $callback = null, array $options = [])
+ * @method \Bouncer\Model\Entity\BouncerRecord findOrCreate(\Cake\ORM\Query\SelectQuery|callable|array $search, ?callable $callback = null, array $options = [])
  * @method \Bouncer\Model\Entity\BouncerRecord patchEntity(\Cake\Datasource\EntityInterface $entity, array $data, array $options = [])
  * @method array<\Bouncer\Model\Entity\BouncerRecord> patchEntities(iterable $entities, array $data, array $options = [])
  * @method \Bouncer\Model\Entity\BouncerRecord|false save(\Cake\Datasource\EntityInterface $entity, array $options = [])
  * @method \Bouncer\Model\Entity\BouncerRecord saveOrFail(\Cake\Datasource\EntityInterface $entity, array $options = [])
- * @method iterable<\Bouncer\Model\Entity\BouncerRecord>|\Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord>|false saveMany(iterable $entities, array $options = [])
- * @method iterable<\Bouncer\Model\Entity\BouncerRecord>|\Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord> saveManyOrFail(iterable $entities, array $options = [])
- * @method iterable<\Bouncer\Model\Entity\BouncerRecord>|\Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord>|false deleteMany(iterable $entities, array $options = [])
- * @method iterable<\Bouncer\Model\Entity\BouncerRecord>|\Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord> deleteManyOrFail(iterable $entities, array $options = [])
+ * @method \Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord>|false saveMany(iterable $entities, array $options = [])
+ * @method \Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord> saveManyOrFail(iterable $entities, array $options = [])
+ * @method \Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord>|false deleteMany(iterable $entities, array $options = [])
+ * @method \Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord> deleteManyOrFail(iterable $entities, array $options = [])
  * @mixin \Cake\ORM\Behavior\TimestampBehavior
+ * @extends \Cake\ORM\Table<array{Timestamp: \Cake\ORM\Behavior\TimestampBehavior}>
  */
 class BouncerRecordsTable extends Table
 {

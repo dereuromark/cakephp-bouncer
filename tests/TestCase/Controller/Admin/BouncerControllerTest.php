@@ -11,6 +11,8 @@ use Cake\TestSuite\TestCase;
 
 /**
  * Bouncer\Controller\Admin\BouncerController Test Case
+ *
+ * @uses \Bouncer\Controller\Admin\BouncerController
  */
 class BouncerControllerTest extends TestCase
 {
