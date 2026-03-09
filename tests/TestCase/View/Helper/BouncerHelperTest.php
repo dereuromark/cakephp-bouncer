@@ -6,6 +6,7 @@ namespace Bouncer\Test\TestCase\View\Helper;
 
 use Bouncer\Model\Entity\BouncerRecord;
 use Bouncer\View\Helper\BouncerHelper;
+use Cake\Core\Configure;
 use Cake\ORM\Entity;
 use Cake\TestSuite\TestCase;
 use Cake\View\View;
@@ -270,5 +271,134 @@ class BouncerHelperTest extends TestCase
 
         $this->assertStringContainsString('&lt;script&gt;', $result);
         $this->assertStringNotContainsString('<script>alert', $result);
+    }
+
+    public function testFormatValueWithLongString(): void
+    {
+        $longString = str_repeat('a', 150);
+        $result = $this->helper->formatValue($longString);
+
+        $this->assertStringContainsString('text-break', $result);
+        $this->assertStringContainsString($longString, $result);
+    }
+
+    public function testFormatUserWithNull(): void
+    {
+        $result = $this->helper->formatUser(null);
+
+        $this->assertStringContainsString('N/A', $result);
+        $this->assertStringContainsString('text-muted', $result);
+    }
+
+    public function testFormatUserWithEmptyString(): void
+    {
+        $result = $this->helper->formatUser('');
+
+        $this->assertStringContainsString('N/A', $result);
+    }
+
+    public function testFormatUserWithIdOnly(): void
+    {
+        $result = $this->helper->formatUser(42);
+
+        $this->assertStringContainsString('User #42', $result);
+    }
+
+    public function testFormatUserWithDisplayName(): void
+    {
+        $result = $this->helper->formatUser(42, 'John Doe');
+
+        $this->assertStringContainsString('John Doe', $result);
+        $this->assertStringNotContainsString('User #42', $result);
+    }
+
+    public function testFormatUserWithStringLinkConfig(): void
+    {
+        Configure::write('Bouncer.linkUser', '/admin/users/view/{user}');
+
+        $result = $this->helper->formatUser(42, 'John Doe');
+
+        $this->assertStringContainsString('href="/admin/users/view/42"', $result);
+        $this->assertStringContainsString('John Doe', $result);
+
+        Configure::delete('Bouncer.linkUser');
+    }
+
+    public function testFormatUserWithStringIdLinkConfig(): void
+    {
+        Configure::write('Bouncer.linkUser', '/users/{user}');
+
+        $result = $this->helper->formatUser('123');
+
+        $this->assertStringContainsString('href="/users/123"', $result);
+        $this->assertStringContainsString('User #123', $result);
+
+        Configure::delete('Bouncer.linkUser');
+    }
+
+    public function testFormatUserWithCallableLinkConfig(): void
+    {
+        Configure::write('Bouncer.linkUser', function ($userId) {
+            return '/custom/user/' . $userId;
+        });
+
+        $result = $this->helper->formatUser(99);
+
+        $this->assertStringContainsString('href="/custom/user/99"', $result);
+
+        Configure::delete('Bouncer.linkUser');
+    }
+
+    public function testFormatRecordWithNullPrimaryKey(): void
+    {
+        $result = $this->helper->formatRecord('Articles', null);
+
+        $this->assertStringContainsString('New', $result);
+        $this->assertStringContainsString('badge', $result);
+        $this->assertStringContainsString('bg-success', $result);
+    }
+
+    public function testFormatRecordWithPrimaryKeyNoLink(): void
+    {
+        $result = $this->helper->formatRecord('Articles', 42);
+
+        $this->assertStringContainsString('42', $result);
+        $this->assertStringNotContainsString('href=', $result);
+    }
+
+    public function testFormatRecordWithStringLinkConfig(): void
+    {
+        Configure::write('Bouncer.linkRecord', '/admin/{table}/view/{primary_key}');
+
+        $result = $this->helper->formatRecord('Articles', '42');
+
+        $this->assertStringContainsString('href="/admin/Articles/view/42"', $result);
+        $this->assertStringContainsString('42', $result);
+
+        Configure::delete('Bouncer.linkRecord');
+    }
+
+    public function testFormatRecordWithPluginSource(): void
+    {
+        Configure::write('Bouncer.linkRecord', '/{plugin}/{table}/view/{primary_key}');
+
+        $result = $this->helper->formatRecord('Community.Stories', '99');
+
+        $this->assertStringContainsString('href="/Community/Stories/view/99"', $result);
+
+        Configure::delete('Bouncer.linkRecord');
+    }
+
+    public function testFormatRecordWithCallableLinkConfig(): void
+    {
+        Configure::write('Bouncer.linkRecord', function ($source, $primaryKey, $plugin, $tableName) {
+            return '/records/' . $tableName . '/' . $primaryKey;
+        });
+
+        $result = $this->helper->formatRecord('Articles', '77');
+
+        $this->assertStringContainsString('href="/records/Articles/77"', $result);
+
+        Configure::delete('Bouncer.linkRecord');
     }
 }
