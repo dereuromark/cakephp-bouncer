@@ -1,8 +1,12 @@
 # Bouncer Plugin For CakePHP
 
 [![Build Status](https://github.com/dereuromark/cakephp-bouncer/actions/workflows/ci.yml/badge.svg)](https://github.com/dereuromark/cakephp-bouncer/actions/workflows/ci.yml)
+[![Coverage Status](https://img.shields.io/codecov/c/github/dereuromark/cakephp-bouncer/master.svg?style=flat-square)](https://codecov.io/github/dereuromark/cakephp-bouncer)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen.svg?style=flat)](https://phpstan.org/)
+[![Latest Stable Version](https://poser.pugx.org/dereuromark/cakephp-bouncer/v/stable.svg)](https://packagist.org/packages/dereuromark/cakephp-bouncer)
 [![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%208.2-8892BF.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Total Downloads](https://poser.pugx.org/dereuromark/cakephp-bouncer/d/total.svg)](https://packagist.org/packages/dereuromark/cakephp-bouncer)
 
 This plugin implements an approval workflow for CakePHP applications. Users propose changes (create or edit records), and admins/moderators can review, approve, or reject those changes before they are published to the actual database tables.
 
