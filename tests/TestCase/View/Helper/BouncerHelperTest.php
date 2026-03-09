@@ -126,6 +126,25 @@ class BouncerHelperTest extends TestCase
         $this->assertStringContainsString('No changes detected', $result);
     }
 
+    public function testDiffInlineWithLongText(): void
+    {
+        $diffs = [
+            'description' => [
+                'baseStr' => 'Old text',
+                'proposedStr' => 'New text',
+                'isLongText' => true,
+                'inline' => '<div class="diff-rendered">Inline diff content</div>',
+                'sideBySide' => '<div class="diff-rendered">Side by side content</div>',
+            ],
+        ];
+
+        $result = $this->helper->diffInline($diffs);
+
+        $this->assertStringContainsString('card', $result);
+        $this->assertStringContainsString('description', $result);
+        $this->assertStringContainsString('Inline diff content', $result);
+    }
+
     public function testDiffSideBySideReturnsHtml(): void
     {
         $diffs = [
@@ -142,6 +161,83 @@ class BouncerHelperTest extends TestCase
 
         $this->assertStringContainsString('card', $result);
         $this->assertStringContainsString('content', $result);
+    }
+
+    public function testDiffSideBySideWithEmptyDiffs(): void
+    {
+        $result = $this->helper->diffSideBySide([]);
+
+        $this->assertStringContainsString('No changes detected', $result);
+    }
+
+    public function testDiffSideBySideWithLongText(): void
+    {
+        $diffs = [
+            'body' => [
+                'baseStr' => 'Old body text',
+                'proposedStr' => 'New body text',
+                'isLongText' => true,
+                'inline' => '<div class="diff-inline">Inline</div>',
+                'sideBySide' => '<div class="diff-side">Side by side rendered</div>',
+            ],
+        ];
+
+        $result = $this->helper->diffSideBySide($diffs);
+
+        $this->assertStringContainsString('card', $result);
+        $this->assertStringContainsString('body', $result);
+        $this->assertStringContainsString('Side by side rendered', $result);
+    }
+
+    public function testCalculateDiffsWithLongText(): void
+    {
+        $longText = str_repeat("This is a line of text.\n", 10);
+        $bouncerRecord = new BouncerRecord([
+            'id' => 1,
+            'source' => 'Articles',
+            'primary_key' => 42,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['body' => $longText . ' Modified']),
+            'original_data' => json_encode(['body' => $longText]),
+        ]);
+
+        $currentRecord = new Entity([
+            'id' => 42,
+            'body' => $longText,
+        ]);
+
+        $diffs = $this->helper->calculateDiffs($bouncerRecord, $currentRecord);
+
+        $this->assertArrayHasKey('body', $diffs);
+        $this->assertTrue($diffs['body']['isLongText']);
+        $this->assertNotNull($diffs['body']['inline']);
+        $this->assertNotNull($diffs['body']['sideBySide']);
+    }
+
+    public function testCalculateDiffsWithApprovedRecord(): void
+    {
+        $bouncerRecord = new BouncerRecord([
+            'id' => 1,
+            'source' => 'Articles',
+            'primary_key' => 42,
+            'user_id' => 1,
+            'status' => 'approved',
+            'data' => json_encode(['title' => 'New Title']),
+            'original_data' => json_encode(['title' => 'Old Title']),
+        ]);
+
+        // Current record might have changed, but we compare against original_data
+        $currentRecord = new Entity([
+            'id' => 42,
+            'title' => 'Different Title',
+        ]);
+
+        $diffs = $this->helper->calculateDiffs($bouncerRecord, $currentRecord);
+
+        $this->assertArrayHasKey('title', $diffs);
+        $this->assertEquals('Old Title', $diffs['title']['baseStr']);
+        $this->assertEquals('New Title', $diffs['title']['proposedStr']);
     }
 
     public function testNewRecordTable(): void
