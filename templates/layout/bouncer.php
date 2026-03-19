@@ -207,7 +207,8 @@ $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
 
         /* Pagination */
         .pagination {
-            margin-bottom: 0.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
         }
 
         .pagination .page-link {
