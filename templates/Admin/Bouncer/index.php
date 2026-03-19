@@ -38,8 +38,11 @@
                 </div>
                 <div class="col-md-3">
                     <?= $this->Form->control('user_id', [
+                        'type' => 'text',
                         'label' => 'User ID',
                         'default' => $userId,
+                        'placeholder' => 'Search by user ID',
+                        'class' => 'form-control',
                     ]) ?>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
