@@ -30,7 +30,8 @@
         "cakephp/cakephp": "^5.1.0",
         "phpunit/phpunit": "^11.5.42 || ^12.4.0",
         "php-collective/code-sniffer": "dev-master as 0.4.6",
-        "cakephp/migrations": "^4.0.0"
+        "cakephp/migrations": "^4.0.0",
+        "dereuromark/cakephp-templating": "^0.2.7"
     },
     "suggest": {
         "dereuromark/cakephp-audit-stash": "Integrates seamlessly to provide complete audit trail of approval workflow",

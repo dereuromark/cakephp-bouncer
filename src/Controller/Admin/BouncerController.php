@@ -6,6 +6,7 @@ namespace Bouncer\Controller\Admin;
 
 use App\Controller\AppController;
 use Bouncer\Lib\ThreeWayMerge;
+use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use DateTime;
 use Exception;
@@ -18,6 +19,8 @@ use RuntimeException;
  */
 class BouncerController extends AppController
 {
+    use LoadHelperTrait;
+
     /**
      * @var string|null
      */
@@ -33,6 +36,20 @@ class BouncerController extends AppController
     public function beforeFilter(EventInterface $event): void
     {
         parent::beforeFilter($event);
+
+        $this->loadHelpers();
+
+        // Configure layout
+        $adminLayout = Configure::read('Bouncer.adminLayout');
+        if ($adminLayout === false) {
+            // Disable plugin layout, use app's default
+        } elseif ($adminLayout === null) {
+            // Use plugin's isolated Bootstrap 5 layout
+            $this->viewBuilder()->setLayout('Bouncer.bouncer');
+        } else {
+            // Use custom layout
+            $this->viewBuilder()->setLayout($adminLayout);
+        }
     }
 
     /**
@@ -121,7 +138,6 @@ class BouncerController extends AppController
             }
         }
 
-        $this->viewBuilder()->addHelper('Bouncer.Bouncer');
         $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
 
         return null;
