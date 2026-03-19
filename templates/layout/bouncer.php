@@ -9,9 +9,11 @@
  */
 
 use Cake\Core\Configure;
+use Cake\Core\Plugin;
 
 $controller = $this->getRequest()->getParam('controller');
 $action = $this->getRequest()->getParam('action');
+$hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -277,6 +279,12 @@ $action = $this->getRequest()->getParam('action');
             <i class="fas fa-shield-alt"></i>
             Bouncer Admin
         </a>
+        <?php if ($hasAuditStashPlugin) { ?>
+        <a class="btn btn-outline-light btn-sm ms-auto" href="<?= $this->Url->build(['plugin' => 'AuditStash', 'prefix' => 'Admin', 'controller' => 'AuditLogs', 'action' => 'index']) ?>">
+            <i class="fas fa-clipboard-list me-1"></i>
+            AuditStash
+        </a>
+        <?php } ?>
     </header>
 
     <!-- Sidebar -->
