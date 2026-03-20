@@ -75,7 +75,10 @@
                         <td><?= $this->Number->format($bouncerRecord->id) ?></td>
                         <td><code><?= h($bouncerRecord->source) ?></code></td>
                         <td>
-                            <?php if ($bouncerRecord->primary_key) { ?>
+                            <?php if ($bouncerRecord->isDeleteProposal()) { ?>
+                                <?= $this->Bouncer->formatRecord($bouncerRecord->source, $bouncerRecord->primary_key) ?>
+                                <span class="badge bg-danger">Delete</span>
+                            <?php } elseif ($bouncerRecord->primary_key) { ?>
                                 <?= $this->Bouncer->formatRecord($bouncerRecord->source, $bouncerRecord->primary_key) ?>
                                 <span class="badge bg-info">Edit</span>
                             <?php } else { ?>
