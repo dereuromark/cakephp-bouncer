@@ -13,6 +13,8 @@ use Cake\Core\Plugin;
 
 $controller = $this->getRequest()->getParam('controller');
 $action = $this->getRequest()->getParam('action');
+$plugin = $this->getRequest()->getParam('plugin');
+$prefix = $this->getRequest()->getParam('prefix');
 $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
 ?>
 <!DOCTYPE html>
@@ -276,12 +278,12 @@ $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
         <button class="mobile-nav-toggle me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#bouncerMobileNav">
             <i class="fas fa-bars"></i>
         </button>
-        <a class="navbar-brand" href="<?= $this->Url->build(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']) ?>">
+        <a class="navbar-brand" href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index']) ?>">
             <i class="fas fa-shield-alt"></i>
             Bouncer Admin
         </a>
         <?php if ($hasAuditStashPlugin) { ?>
-        <a class="btn btn-outline-light btn-sm ms-auto" href="<?= $this->Url->build(['plugin' => 'AuditStash', 'prefix' => 'Admin', 'controller' => 'AuditLogs', 'action' => 'index']) ?>">
+        <a class="btn btn-outline-light btn-sm ms-auto" href="<?= $this->Url->build(['plugin' => 'AuditStash', 'prefix' => $prefix, 'controller' => 'AuditLogs', 'action' => 'index']) ?>">
             <i class="fas fa-clipboard-list me-1"></i>
             AuditStash
         </a>
