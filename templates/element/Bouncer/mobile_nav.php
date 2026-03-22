@@ -9,6 +9,8 @@
 
 $controller = $this->getRequest()->getParam('controller');
 $action = $this->getRequest()->getParam('action');
+$plugin = $this->getRequest()->getParam('plugin');
+$prefix = $this->getRequest()->getParam('prefix');
 
 $isActive = function (string $c, ?array $actions = null) use ($controller, $action): string {
     if ($controller !== $c) {
@@ -36,7 +38,7 @@ $isActive = function (string $c, ?array $actions = null) use ($controller, $acti
             <div class="text-white-50 small text-uppercase mb-2"><?= __('Navigation') ?></div>
             <nav class="nav flex-column">
                 <a class="nav-link text-white-50 <?= $isActive('Bouncer', ['index']) ? 'text-white fw-bold' : '' ?>"
-                   href="<?= $this->Url->build(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']) ?>">
+                   href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index']) ?>">
                     <i class="fas fa-list me-2"></i>
                     <?= __('All Records') ?>
                 </a>
@@ -48,22 +50,22 @@ $isActive = function (string $c, ?array $actions = null) use ($controller, $acti
             <div class="text-white-50 small text-uppercase mb-2"><?= __('Status Filters') ?></div>
             <nav class="nav flex-column">
                 <a class="nav-link text-white-50"
-                   href="<?= $this->Url->build(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'pending']]) ?>">
+                   href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'pending']]) ?>">
                     <i class="fas fa-clock me-2"></i>
                     <?= __('Pending') ?>
                 </a>
                 <a class="nav-link text-white-50"
-                   href="<?= $this->Url->build(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'approved']]) ?>">
+                   href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'approved']]) ?>">
                     <i class="fas fa-check-circle me-2"></i>
                     <?= __('Approved') ?>
                 </a>
                 <a class="nav-link text-white-50"
-                   href="<?= $this->Url->build(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'rejected']]) ?>">
+                   href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'rejected']]) ?>">
                     <i class="fas fa-times-circle me-2"></i>
                     <?= __('Rejected') ?>
                 </a>
                 <a class="nav-link text-white-50"
-                   href="<?= $this->Url->build(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'all']]) ?>">
+                   href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'all']]) ?>">
                     <i class="fas fa-globe me-2"></i>
                     <?= __('All Statuses') ?>
                 </a>
