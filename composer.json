@@ -8,6 +8,8 @@
         "approval",
         "workflow",
         "moderation",
+		"admin-panel",
+		"standalone-ui",        
         "draft",
         "bouncer"
     ],
