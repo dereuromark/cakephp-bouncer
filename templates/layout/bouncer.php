@@ -268,7 +268,7 @@ $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
         .diff-wrapper del { background: #f09494; text-decoration: none; padding: 1px 2px; font-weight: bold; }
         .diff-wrapper .old { background-color: #ffebe9; }
         .diff-wrapper .new { background-color: #e6ffec; }
-        pre { background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; }
+        pre { background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; max-width: 100%; }
     </style>
     <?= $this->fetch('css') ?>
 </head>
