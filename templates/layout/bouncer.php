@@ -16,6 +16,7 @@ $action = $this->getRequest()->getParam('action');
 $plugin = $this->getRequest()->getParam('plugin');
 $prefix = $this->getRequest()->getParam('prefix');
 $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
+$cspNonce = (string)$this->getRequest()->getAttribute('cspNonce', '');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -315,7 +316,7 @@ $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
-    <script>
+    <script<?= $cspNonce !== '' ? ' nonce="' . h($cspNonce) . '"' : '' ?>>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -323,10 +324,10 @@ $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        // Form confirmation
-        document.querySelectorAll('form[data-confirm]').forEach(function(form) {
+        // Confirmation dialogs for postButton forms (CSP-safe replacement for postLink + confirm)
+        document.querySelectorAll('form[data-confirm-message]').forEach(function(form) {
             form.addEventListener('submit', function(e) {
-                if (!confirm(form.dataset.confirm)) {
+                if (!confirm(form.dataset.confirmMessage)) {
                     e.preventDefault();
                 }
             });

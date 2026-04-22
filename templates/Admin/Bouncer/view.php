@@ -167,10 +167,16 @@ $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
             </div>
             <div class="card-body">
                 <p class="text-muted"><?= __('This proposal was rejected.') ?></p>
-                <?= $this->Form->postLink(
+                <?= $this->Form->postButton(
                     __('Reopen for Review'),
                     ['action' => 'reopen', $bouncerRecord->id],
-                    ['class' => 'btn btn-warning', 'confirm' => __('Are you sure you want to reopen this proposal?')]
+                    [
+                        'class' => 'btn btn-warning',
+                        'form' => [
+                            'class' => 'd-inline',
+                            'data-confirm-message' => __('Are you sure you want to reopen this proposal?'),
+                        ],
+                    ]
                 ) ?>
             </div>
         </div>
