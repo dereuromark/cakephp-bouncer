@@ -118,7 +118,7 @@ $diffs = $this->Bouncer->calculateDiffs($bouncerRecord, $currentRecord);
                 <div id="inline-diff-view">
                     <?= $this->Bouncer->diffInline($diffs) ?>
                 </div>
-                <div id="side-diff-view" style="display: none;">
+                <div id="side-diff-view" hidden>
                     <?= $this->Bouncer->diffSideBySide($diffs) ?>
                 </div>
             <?php } else { ?>

@@ -62,12 +62,12 @@ $hasConflicts = !empty($conflict['conflicts']);
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 12%"><?= __('Field') ?></th>
-                                <th style="width: 18%"><?= __('Original') ?></th>
-                                <th style="width: 18%"><?= __('Current') ?></th>
-                                <th style="width: 18%"><?= __('Proposed') ?></th>
-                                <th style="width: 18%"><?= __('Merged Result') ?></th>
-                                <th style="width: 16%"><?= __('Changes') ?></th>
+                                <th class="bouncer-col-w-12"><?= __('Field') ?></th>
+                                <th class="bouncer-col-w-18"><?= __('Original') ?></th>
+                                <th class="bouncer-col-w-18"><?= __('Current') ?></th>
+                                <th class="bouncer-col-w-18"><?= __('Proposed') ?></th>
+                                <th class="bouncer-col-w-18"><?= __('Merged Result') ?></th>
+                                <th class="bouncer-col-w-16"><?= __('Changes') ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -127,11 +127,11 @@ $hasConflicts = !empty($conflict['conflicts']);
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 15%"><?= __('Field') ?></th>
-                                <th style="width: 20%"><?= __('Original') ?></th>
-                                <th style="width: 20%"><?= __('Current') ?></th>
-                                <th style="width: 20%"><?= __('Proposed') ?></th>
-                                <th style="width: 25%"><?= __('Choose Value') ?></th>
+                                <th class="bouncer-col-w-15"><?= __('Field') ?></th>
+                                <th class="bouncer-col-w-20"><?= __('Original') ?></th>
+                                <th class="bouncer-col-w-20"><?= __('Current') ?></th>
+                                <th class="bouncer-col-w-20"><?= __('Proposed') ?></th>
+                                <th class="bouncer-col-w-25"><?= __('Choose Value') ?></th>
                             </tr>
                         </thead>
                         <tbody>

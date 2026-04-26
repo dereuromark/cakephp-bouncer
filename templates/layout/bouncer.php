@@ -99,6 +99,15 @@ $cspNonce = (string)$this->getRequest()->getAttribute('cspNonce', '');
             background: var(--bouncer-sidebar-bg);
         }
 
+        /* Column-width utilities for Admin/Bouncer/resolve.php diff tables
+           (replace inline `<th style="width:N%">` with strict-CSP-safe classes). */
+        .bouncer-col-w-12 { width: 12%; }
+        .bouncer-col-w-15 { width: 15%; }
+        .bouncer-col-w-16 { width: 16%; }
+        .bouncer-col-w-18 { width: 18%; }
+        .bouncer-col-w-20 { width: 20%; }
+        .bouncer-col-w-25 { width: 25%; }
+
         .bouncer-sidebar .nav-section {
             padding: 0 1rem;
             margin-bottom: 1.5rem;
