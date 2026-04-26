@@ -94,6 +94,11 @@ $cspNonce = (string)$this->getRequest()->getAttribute('cspNonce', '');
             z-index: 1020;
         }
 
+        /* Mobile nav offcanvas — same background as sidebar */
+        .bouncer-mobile-nav-bg {
+            background: var(--bouncer-sidebar-bg);
+        }
+
         .bouncer-sidebar .nav-section {
             padding: 0 1rem;
             margin-bottom: 1.5rem;
