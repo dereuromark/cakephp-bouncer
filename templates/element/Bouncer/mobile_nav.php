@@ -23,8 +23,7 @@ $isActive = function (string $c, ?array $actions = null) use ($controller, $acti
     return in_array($action, $actions, true) ? 'active' : '';
 };
 ?>
-<div class="offcanvas offcanvas-start" tabindex="-1" id="bouncerMobileNav" aria-labelledby="bouncerMobileNavLabel"
-     style="background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);">
+<div class="offcanvas offcanvas-start bouncer-mobile-nav-bg" tabindex="-1" id="bouncerMobileNav" aria-labelledby="bouncerMobileNavLabel">
     <div class="offcanvas-header border-bottom border-secondary">
         <h5 class="offcanvas-title text-white" id="bouncerMobileNavLabel">
             <i class="fas fa-shield-alt me-2"></i>
