@@ -29,6 +29,24 @@ return [
         'standalone' => false,
 
         /**
+         * Admin access gate (optional, defense-in-depth).
+         *
+         * Unset = no-op; the host AppController's auth is the only gate.
+         * Set to a Closure that receives the current request and returns
+         * literal true to grant access; anything else (non-Closure, returns
+         * false, returns a truthy non-bool, or throws) yields a 403.
+         *
+         * Useful when you want to tighten beyond the host's default admin
+         * gating — e.g. "moderators only, not all admins."
+         *
+         * Example — restrict to users with the 'moderator' role:
+         */
+        // 'accessCheck' => function (\Cake\Http\ServerRequest $request): bool {
+        //     $identity = $request->getAttribute('identity');
+        //     return $identity !== null && in_array('moderator', (array)$identity->roles, true);
+        // },
+
+        /**
          * User Link Configuration
          *
          * Configure how user IDs are linked in the bouncer record display.
