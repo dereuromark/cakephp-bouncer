@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Bouncer\Test\TestCase\Controller\Admin;
 
+use Cake\Core\Configure;
+use Cake\Http\Exception\ForbiddenException;
 use Cake\I18n\DateTime;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\TestSuite\IntegrationTestTrait;
 use Cake\TestSuite\TestCase;
+use RuntimeException;
 
 /**
  * Bouncer\Controller\Admin\BouncerController Test Case
@@ -62,8 +65,91 @@ class BouncerControllerTest extends TestCase
     protected function tearDown(): void
     {
         unset($this->BouncerRecords, $this->Articles);
+        Configure::delete('Bouncer.accessCheck');
 
         parent::tearDown();
+    }
+
+    public function testAccessCheckUnsetIsNoOp(): void
+    {
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+
+        $this->assertResponseOk();
+    }
+
+    public function testAccessCheckNonClosureRejects(): void
+    {
+        $this->disableErrorHandlerMiddleware();
+        Configure::write('Bouncer.accessCheck', 'not a closure');
+
+        $this->expectException(ForbiddenException::class);
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+    }
+
+    public function testAccessCheckClosureFalseRejects(): void
+    {
+        $this->disableErrorHandlerMiddleware();
+        Configure::write('Bouncer.accessCheck', fn () => false);
+
+        $this->expectException(ForbiddenException::class);
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+    }
+
+    public function testAccessCheckRequiresStrictTrue(): void
+    {
+        $this->disableErrorHandlerMiddleware();
+        Configure::write('Bouncer.accessCheck', fn () => 1);
+
+        $this->expectException(ForbiddenException::class);
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+    }
+
+    public function testAccessCheckClosureTrueAllows(): void
+    {
+        Configure::write('Bouncer.accessCheck', fn () => true);
+
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+
+        $this->assertResponseOk();
+    }
+
+    public function testAccessCheckThrowingYields403(): void
+    {
+        $this->disableErrorHandlerMiddleware();
+        Configure::write('Bouncer.accessCheck', function (): bool {
+            throw new RuntimeException('oops');
+        });
+
+        $this->expectException(ForbiddenException::class);
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+    }
+
+    public function testAccessCheckExplicitForbiddenIsRespected(): void
+    {
+        $this->disableErrorHandlerMiddleware();
+        Configure::write('Bouncer.accessCheck', function (): bool {
+            throw new ForbiddenException('custom denial reason');
+        });
+
+        $this->expectException(ForbiddenException::class);
+        $this->expectExceptionMessage('custom denial reason');
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+    }
+
+    public function testAccessCheckReceivesRequest(): void
+    {
+        $received = null;
+        Configure::write('Bouncer.accessCheck', function ($request) use (&$received): bool {
+            $received = $request;
+
+            return true;
+        });
+
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+
+        $this->assertResponseOk();
+        $this->assertNotNull($received);
+        $this->assertStringContainsString('bouncer', $received->getPath());
     }
 
     /**

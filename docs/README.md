@@ -68,12 +68,35 @@ $routes->prefix('Admin', function (RouteBuilder $routes) {
 
 ### 4. Access Admin Interface
 
-Navigate to \`/admin/bouncer/bouncer\` to review pending changes:
+Navigate to `/admin/bouncer/bouncer` to review pending changes:
 - Filter by status, table, or user
 - View side-by-side diff of changes
 - Approve or reject with optional reason/note
 
 That's it! Your table now requires approval for all changes.
+
+### 5. (Optional) Tighten admin access via `Bouncer.accessCheck`
+
+The admin UI inherits the host application's `AppController` auth. If your
+app already gates `/admin/*` for admins, no further setup is needed. For
+defense-in-depth — e.g. "moderators only, not all admins" — set
+`Bouncer.accessCheck` to a `Closure` that returns literal `true` to grant
+access. Anything else (returns `false`, returns a truthy non-bool, throws)
+yields a `403`.
+
+```php
+use Cake\Core\Configure;
+use Cake\Http\ServerRequest;
+
+Configure::write('Bouncer.accessCheck', function (ServerRequest $request): bool {
+    $identity = $request->getAttribute('identity');
+    return $identity !== null && in_array('moderator', (array)$identity->roles, true);
+});
+```
+
+Unset = no-op (host auth alone applies). The gate calls
+`Authorization::skipAuthorization()` when the cakephp/authorization
+component is loaded so the policy layer doesn't double-reject.
 
 ## Configuration Options
 
