@@ -8,9 +8,13 @@ use App\Controller\AppController;
 use Bouncer\Lib\ThreeWayMerge;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
+use Cake\Http\Exception\ForbiddenException;
+use Cake\Log\Log;
+use Closure;
 use DateTime;
 use Exception;
 use RuntimeException;
+use Throwable;
 
 /**
  * Bouncer Controller
@@ -37,6 +41,7 @@ class BouncerController extends AppController
     {
         parent::beforeFilter($event);
 
+        $this->enforceAccessCheck();
         $this->loadHelpers();
 
         // Configure layout
@@ -49,6 +54,52 @@ class BouncerController extends AppController
         } else {
             // Use custom layout
             $this->viewBuilder()->setLayout($adminLayout);
+        }
+    }
+
+    /**
+     * Optional defense-in-depth access gate.
+     *
+     * Bouncer manages content moderation / conflict resolution rules — useful
+     * to tighten beyond the host AppController's auth (e.g. "moderators only,
+     * not all admins"). Set `Bouncer.accessCheck` to a Closure that receives
+     * the current request and returns literal `true` to grant access; anything
+     * else (returns false, returns a truthy non-bool, throws) yields a 403.
+     *
+     * Unset = no-op (host AppController auth alone applies).
+     *
+     * @throws \Cake\Http\Exception\ForbiddenException When the configured Closure rejects the request.
+     *
+     * @return void
+     */
+    protected function enforceAccessCheck(): void
+    {
+        $check = Configure::read('Bouncer.accessCheck');
+        if ($check === null) {
+            return;
+        }
+        if (!($check instanceof Closure)) {
+            throw new ForbiddenException('Bouncer.accessCheck must be a Closure');
+        }
+
+        // Coexist with cakephp/authorization: the gate IS the authorization
+        // decision, so silence the policy check.
+        if ($this->components()->has('Authorization') && method_exists($this->components()->get('Authorization'), 'skipAuthorization')) {
+            $this->components()->get('Authorization')->skipAuthorization();
+        }
+
+        try {
+            $allowed = $check($this->request) === true;
+        } catch (ForbiddenException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            Log::warning(sprintf('Bouncer.accessCheck threw %s: %s', $e::class, $e->getMessage()));
+
+            throw new ForbiddenException('Bouncer admin access denied');
+        }
+
+        if (!$allowed) {
+            throw new ForbiddenException('Bouncer admin access denied');
         }
     }
 
