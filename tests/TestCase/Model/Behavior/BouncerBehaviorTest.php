@@ -7,6 +7,7 @@ namespace Bouncer\Test\TestCase\Model\Behavior;
 use Bouncer\Model\Entity\BouncerRecord;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\TestSuite\TestCase;
+use Throwable;
 
 /**
  * Bouncer\Model\Behavior\BouncerBehavior Test Case
@@ -1716,5 +1717,62 @@ class BouncerBehaviorTest extends TestCase
 
         $article = $this->Articles->get($articleId);
         $this->assertSame($proposedBody, $article->body);
+    }
+
+    /**
+     * Test that wrapping a Bouncer-enabled save() in a host transactional() block does not
+     * silently commit the host transaction. Before the fix, the behavior force-committed
+     * unconditionally, which closed the host's outer transaction and prevented a subsequent
+     * rollback from reverting host-level changes.
+     *
+     * @return void
+     */
+    public function testHostTransactionalWrapDoesNotCommitOuterTransaction(): void
+    {
+        // Seed a non-Bouncer-controlled article so we can verify host rollback behavior
+        // independently of the Bouncer table.
+        $seed = $this->Articles->newEntity([
+            'title' => 'Seed Title',
+            'body' => 'Seed Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($seed, ['bypassBouncer' => true]);
+        $seedId = $seed->id;
+
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+        $connection = $this->Articles->getConnection();
+
+        try {
+            $connection->transactional(function () use ($seedId): bool {
+                // (1) Mutate a host-table row directly (no Bouncer interception).
+                $hostRow = $this->Articles->get($seedId);
+                $hostRow->title = 'Mutated Inside Host Tx';
+                $this->Articles->save($hostRow, ['bypassBouncer' => true]);
+
+                // (2) Trigger a Bouncer-intercepted save in the same outer transaction.
+                $article = $this->Articles->newEntity([
+                    'title' => 'Bouncer Article',
+                    'body' => 'Body',
+                    'user_id' => 1,
+                ]);
+                $this->Articles->save($article, ['bouncerUserId' => 1]);
+
+                // (3) Roll back the entire host transaction by returning false.
+                return false;
+            });
+        } catch (Throwable) {
+            // transactional() may surface as exception in some drivers; either way the
+            // post-condition we care about is the rollback succeeded for host changes.
+        }
+
+        // The host's mutation in step (1) MUST have been rolled back. Before the fix,
+        // step (2) would have force-committed and step (3)'s rollback would have been
+        // a no-op for step (1).
+        $hostRow = $this->Articles->get($seedId);
+        $this->assertSame(
+            'Seed Title',
+            $hostRow->title,
+            'Host transaction rollback was lost — Bouncer force-committed the outer transaction.',
+        );
     }
 }

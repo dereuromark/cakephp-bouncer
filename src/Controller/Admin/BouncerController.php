@@ -551,6 +551,11 @@ class BouncerController extends AppController
     /**
      * Delete method
      *
+     * Only pending bouncer records may be deleted via this action. Approved and rejected
+     * records form the moderation audit trail and must not be silently erased; preserving
+     * them is core to the plugin's value proposition (a moderation workflow with traceability).
+     * Attempts to delete non-pending records are rejected with a flash error.
+     *
      * @param int|null $id Bouncer Record id.
      *
      * @return \Cake\Http\Response|null
@@ -560,6 +565,14 @@ class BouncerController extends AppController
         $this->request->allowMethod(['post', 'delete']);
 
         $bouncerRecord = $this->BouncerRecords->get($id);
+
+        if ($bouncerRecord->get('status') !== 'pending') {
+            $this->Flash->error(
+                'Only pending bouncer records can be deleted; resolved records are kept as audit history.',
+            );
+
+            return $this->redirect(['action' => 'view', $id]);
+        }
 
         if ($this->BouncerRecords->delete($bouncerRecord)) {
             $this->Flash->success('Bouncer record has been deleted.');
