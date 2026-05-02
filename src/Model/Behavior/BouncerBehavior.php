@@ -7,11 +7,15 @@ namespace Bouncer\Model\Behavior;
 use ArrayObject;
 use Bouncer\Lib\ThreeWayMerge;
 use Bouncer\Model\Entity\BouncerRecord;
+use Cake\Database\Connection;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
+use Cake\Log\Log;
 use Cake\ORM\Behavior;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use ReflectionObject;
 use RuntimeException;
+use Throwable;
 
 /**
  * Bouncer Behavior
@@ -89,6 +93,82 @@ class BouncerBehavior extends Behavior
     public function initialize(array $config): void
     {
         parent::initialize($config);
+    }
+
+    /**
+     * Persist the bouncer record by committing the current transaction and reopening a new one,
+     * so the bouncer record survives the parent save's rollback.
+     *
+     * If the host application has wrapped the save in its own outer transaction (i.e. the
+     * connection's transaction nesting level is greater than 1), force-committing here would
+     * silently close the host's transaction and corrupt its data integrity guarantees. In that
+     * case we skip the force-commit and log a warning so consumers can detect the unsupported
+     * scenario. The bouncer record will still be persisted as part of the host transaction; if
+     * the host then rolls back, the bouncer record is rolled back with it (acceptable trade-off
+     * vs. corrupting the host's data).
+     *
+     * @param \Cake\Database\Connection $connection Connection
+     *
+     * @return void
+     */
+    protected function commitBouncerRecord(Connection $connection): void
+    {
+        if (!$connection->inTransaction()) {
+            return;
+        }
+
+        if ($this->isHostTransactionWrapped($connection)) {
+            Log::warning(
+                'Bouncer: skipping force-commit because save() is wrapped in an outer host '
+                . 'transaction. The bouncer record will participate in the host transaction '
+                . 'and will be rolled back if the host rolls back. To preserve bouncer records '
+                . 'across host rollbacks, do not wrap Bouncer-enabled save() calls inside your '
+                . 'own transactional() block.',
+                ['scope' => ['bouncer']],
+            );
+
+            return;
+        }
+
+        $connection->commit();
+        // Restart a fresh transaction so the parent save can still roll back without affecting
+        // the now-persisted bouncer record.
+        $connection->begin();
+    }
+
+    /**
+     * Detect whether the connection's current transaction was opened by the host application
+     * (i.e. the nesting level is greater than 1, meaning more than just the ORM save's own
+     * transaction is on the stack).
+     *
+     * Reads the protected `_transactionLevel` property via reflection because CakePHP's
+     * Connection does not expose it through a public accessor.
+     *
+     * @param \Cake\Database\Connection $connection Connection
+     *
+     * @return bool
+     */
+    protected function isHostTransactionWrapped(Connection $connection): bool
+    {
+        try {
+            $reflection = new ReflectionObject($connection);
+            if (!$reflection->hasProperty('_transactionLevel')) {
+                return false;
+            }
+            $property = $reflection->getProperty('_transactionLevel');
+            $level = $property->getValue($connection);
+            if (!is_int($level)) {
+                return false;
+            }
+
+            // Level 1 means only the ORM save() opened the transaction (the expected case).
+            // Level >= 2 means the host wrapped the save in its own transactional() block.
+            return $level > 1;
+        } catch (Throwable) {
+            // If reflection fails for any reason (future CakePHP version renames the property),
+            // be conservative and treat as wrapped to avoid corrupting host transactions.
+            return true;
+        }
     }
 
     /**
@@ -316,10 +396,7 @@ class BouncerBehavior extends Behavior
 
                     // Commit the transaction to persist the delete
                     $connection = $bouncerTable->getConnection();
-                    if ($connection->inTransaction()) {
-                        $connection->commit();
-                        $connection->begin();
-                    }
+                    $this->commitBouncerRecord($connection);
 
                     $bouncerRecord = null;
                 } else {
@@ -404,11 +481,7 @@ class BouncerBehavior extends Behavior
         // We restart the transaction immediately so the parent save can still
         // roll back without affecting our bouncer record.
         $connection = $bouncerTable->getConnection();
-        if ($connection->inTransaction()) {
-            $connection->commit();
-            // Start a new transaction for the parent save to roll back
-            $connection->begin();
-        }
+        $this->commitBouncerRecord($connection);
 
         return $bouncerRecord;
     }
@@ -525,10 +598,7 @@ class BouncerBehavior extends Behavior
 
         // Commit the transaction to persist the bouncer record
         $connection = $bouncerTable->getConnection();
-        if ($connection->inTransaction()) {
-            $connection->commit();
-            $connection->begin();
-        }
+        $this->commitBouncerRecord($connection);
 
         return $bouncerRecord;
     }

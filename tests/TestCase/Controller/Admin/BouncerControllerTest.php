@@ -798,6 +798,57 @@ class BouncerControllerTest extends TestCase
     }
 
     /**
+     * Test delete refuses to delete approved records (audit-history protection).
+     *
+     * @return void
+     */
+    public function testDeleteApprovedRecordRefused(): void
+    {
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => null,
+            'user_id' => 1,
+            'status' => 'approved',
+            'data' => json_encode(['title' => 'Test']),
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+        $id = $bouncerRecord->id;
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'delete', $id]);
+
+        $this->assertRedirect(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'view', $id]);
+        $this->assertFlashElement('flash/error');
+
+        $this->assertTrue($this->BouncerRecords->exists(['id' => $id]));
+    }
+
+    /**
+     * Test delete refuses to delete rejected records (audit-history protection).
+     *
+     * @return void
+     */
+    public function testDeleteRejectedRecordRefused(): void
+    {
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => null,
+            'user_id' => 1,
+            'status' => 'rejected',
+            'reason' => 'No good',
+            'data' => json_encode(['title' => 'Test']),
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+        $id = $bouncerRecord->id;
+
+        $this->post(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'delete', $id]);
+
+        $this->assertRedirect(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'view', $id]);
+        $this->assertFlashElement('flash/error');
+
+        $this->assertTrue($this->BouncerRecords->exists(['id' => $id]));
+    }
+
+    /**
      * Test approve auto-merges stale record with non-overlapping changes
      *
      * @return void
