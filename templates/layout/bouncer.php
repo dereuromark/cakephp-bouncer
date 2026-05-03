@@ -16,6 +16,12 @@ $action = $this->getRequest()->getParam('action');
 $plugin = $this->getRequest()->getParam('plugin');
 $prefix = $this->getRequest()->getParam('prefix');
 $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
+// AuditStash v2 (>=1.x with the dashboard PR) ships a top-level
+// AuditStashController. Older versions only have AuditLogsController.
+// Detect at runtime so the cross-link works on both.
+$auditStashEntryController = class_exists('\\AuditStash\\Controller\\Admin\\AuditStashController')
+    ? 'AuditStash'
+    : 'AuditLogs';
 $cspNonce = (string)$this->getRequest()->getAttribute('cspNonce', '');
 ?>
 <!DOCTYPE html>
@@ -297,8 +303,12 @@ $cspNonce = (string)$this->getRequest()->getAttribute('cspNonce', '');
             <i class="fas fa-shield-alt"></i>
             Bouncer Admin
         </a>
+        <span class="text-light small ms-auto me-3" title="<?= __d('bouncer', 'Server Time') ?>">
+            <i class="far fa-clock me-1"></i>
+            <?= date('Y-m-d H:i:s') ?>
+        </span>
         <?php if ($hasAuditStashPlugin) { ?>
-        <a class="btn btn-outline-light btn-sm ms-auto" href="<?= $this->Url->build(['plugin' => 'AuditStash', 'prefix' => $prefix, 'controller' => 'AuditLogs', 'action' => 'index']) ?>">
+        <a class="btn btn-outline-light btn-sm" href="<?= $this->Url->build(['plugin' => 'AuditStash', 'prefix' => $prefix, 'controller' => $auditStashEntryController, 'action' => 'index']) ?>">
             <i class="fas fa-clipboard-list me-1"></i>
             AuditStash
         </a>

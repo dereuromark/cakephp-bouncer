@@ -60,4 +60,22 @@ $isActive = function (string $c, ?array $actions = null) use ($controller, $acti
             </a>
         </nav>
     </div>
+
+    <?php if (\Cake\Core\Configure::read('debug')) { ?>
+    <div class="nav-section">
+        <div class="nav-section-title text-warning"><?= __d('bouncer', 'Debug') ?></div>
+        <nav class="nav flex-column">
+            <?= $this->Form->postLink(
+                $this->element('Bouncer.icon', ['name' => 'eraser', 'fallback' => 'fas fa-eraser']) . ' ' . __d('bouncer', 'Reset (truncate)'),
+                ['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'reset'],
+                [
+                    'class' => 'nav-link text-danger',
+                    'escapeTitle' => false,
+                    'confirm' => __d('bouncer', 'This wipes ALL bouncer records. Continue?'),
+                    'block' => true,
+                ],
+            ) ?>
+        </nav>
+    </div>
+    <?php } ?>
 </aside>

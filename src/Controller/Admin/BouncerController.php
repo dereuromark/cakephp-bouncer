@@ -582,4 +582,26 @@ class BouncerController extends AppController
 
         return $this->redirect(['action' => 'index']);
     }
+
+    /**
+     * Truncate bouncer_records. Debug-only convenience for development /
+     * demo environments — refuses to run when `Configure::read('debug')`
+     * is false so a misconfigured route can't wipe production data.
+     *
+     * @return \Cake\Http\Response|null
+     */
+    public function reset()
+    {
+        $this->request->allowMethod(['post']);
+        if (!Configure::read('debug')) {
+            throw new ForbiddenException('Bouncer reset is only available in debug mode.');
+        }
+
+        $connection = $this->BouncerRecords->getConnection();
+        $connection->execute('TRUNCATE TABLE ' . $connection->getDriver()->quoteIdentifier($this->BouncerRecords->getTable()));
+
+        $this->Flash->success(__d('bouncer', 'All bouncer records have been deleted.'));
+
+        return $this->redirect(['action' => 'index']);
+    }
 }
