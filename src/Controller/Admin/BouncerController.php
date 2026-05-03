@@ -588,6 +588,8 @@ class BouncerController extends AppController
      * demo environments — refuses to run when `Configure::read('debug')`
      * is false so a misconfigured route can't wipe production data.
      *
+     * @throws \Cake\Http\Exception\ForbiddenException When debug is off.
+     *
      * @return \Cake\Http\Response|null
      */
     public function reset()
