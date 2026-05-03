@@ -19,7 +19,7 @@ $hasAuditStashPlugin = Plugin::isLoaded('AuditStash');
 // AuditStash v2 (>=1.x with the dashboard PR) ships a top-level
 // AuditStashController. Older versions only have AuditLogsController.
 // Detect at runtime so the cross-link works on both.
-$auditStashEntryController = class_exists('\\AuditStash\\Controller\\Admin\\AuditStashController')
+$auditStashEntryController = class_exists('AuditStash\\Controller\\Admin\\AuditStashController')
     ? 'AuditStash'
     : 'AuditLogs';
 $cspNonce = (string)$this->getRequest()->getAttribute('cspNonce', '');
