@@ -303,13 +303,24 @@ $cspNonce = (string)$this->getRequest()->getAttribute('cspNonce', '');
             <i class="fas fa-shield-alt"></i>
             Bouncer Admin
         </a>
+        <?php
+        $adminBackUrl = Configure::read('Bouncer.adminBackUrl');
+        $hasAdminBack = $adminBackUrl !== null && $adminBackUrl !== '';
+        $adminBackLabel = (string)Configure::read('Bouncer.adminBackLabel', __d('bouncer', 'Back to App'));
+        ?>
+        <?php if ($hasAdminBack) { ?>
+        <a class="btn btn-outline-light btn-sm ms-auto" href="<?= $this->Url->build($adminBackUrl) ?>">
+            <i class="fas fa-arrow-left me-1"></i>
+            <?= h($adminBackLabel) ?>
+        </a>
+        <?php } ?>
         <?php if ($hasAuditStashPlugin) { ?>
-        <a class="btn btn-outline-light btn-sm ms-auto" href="<?= $this->Url->build(['plugin' => 'AuditStash', 'prefix' => $prefix, 'controller' => $auditStashEntryController, 'action' => 'index']) ?>">
+        <a class="btn btn-outline-light btn-sm <?= $hasAdminBack ? 'ms-2' : 'ms-auto' ?>" href="<?= $this->Url->build(['plugin' => 'AuditStash', 'prefix' => $prefix, 'controller' => $auditStashEntryController, 'action' => 'index']) ?>">
             <i class="fas fa-clipboard-list me-1"></i>
             AuditStash
         </a>
         <?php } ?>
-        <span class="text-light small <?= $hasAuditStashPlugin ? 'ms-3' : 'ms-auto' ?>" title="<?= __d('bouncer', 'Server Time') ?>">
+        <span class="text-light small <?= ($hasAdminBack || $hasAuditStashPlugin) ? 'ms-3' : 'ms-auto' ?>" title="<?= __d('bouncer', 'Server Time') ?>">
             <i class="far fa-clock me-1"></i>
             <?= date('Y-m-d H:i:s') ?>
         </span>
