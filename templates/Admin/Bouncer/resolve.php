@@ -28,25 +28,25 @@ $hasAutoMerged = !empty($conflict['autoMerged']);
 $hasConflicts = !empty($conflict['conflicts']);
 ?>
 <div class="bouncer resolve content">
-    <h1><?= __('Resolve Conflicts') ?></h1>
+    <h1><?= __d('bouncer', 'Resolve Conflicts') ?></h1>
 
     <?php if ($hasConflicts) { ?>
         <div class="alert alert-danger">
-            <strong><?= __('Manual Resolution Required') ?></strong>
-            <?= __('Some fields have conflicting changes that could not be auto-merged. Please review and choose the correct value for each conflicting field.') ?>
+            <strong><?= __d('bouncer', 'Manual Resolution Required') ?></strong>
+            <?= __d('bouncer', 'Some fields have conflicting changes that could not be auto-merged. Please review and choose the correct value for each conflicting field.') ?>
         </div>
     <?php } ?>
 
     <?php if ($hasAutoMerged) { ?>
         <div class="alert alert-success">
-            <strong><?= __('Auto-Merged Successfully') ?></strong>
-            <?= __('Some fields were automatically merged because the changes did not overlap.') ?>
+            <strong><?= __d('bouncer', 'Auto-Merged Successfully') ?></strong>
+            <?= __d('bouncer', 'Some fields were automatically merged because the changes did not overlap.') ?>
         </div>
     <?php } ?>
 
     <div class="card mb-3">
         <div class="card-header">
-            <strong><?= __('Record: {0} #{1}', h($bouncerRecord->source), $bouncerRecord->primary_key) ?></strong>
+            <strong><?= __d('bouncer', 'Record: {0} #{1}', h($bouncerRecord->source), $bouncerRecord->primary_key) ?></strong>
         </div>
     </div>
 
@@ -55,19 +55,19 @@ $hasConflicts = !empty($conflict['conflicts']);
     <?php if ($hasAutoMerged) { ?>
         <div class="card mb-3">
             <div class="card-header bg-success text-white">
-                <strong><?= __('Auto-Merged Fields') ?></strong>
+                <strong><?= __d('bouncer', 'Auto-Merged Fields') ?></strong>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th class="bouncer-col-w-12"><?= __('Field') ?></th>
-                                <th class="bouncer-col-w-18"><?= __('Original') ?></th>
-                                <th class="bouncer-col-w-18"><?= __('Current') ?></th>
-                                <th class="bouncer-col-w-18"><?= __('Proposed') ?></th>
-                                <th class="bouncer-col-w-18"><?= __('Merged Result') ?></th>
-                                <th class="bouncer-col-w-16"><?= __('Changes') ?></th>
+                                <th class="bouncer-col-w-12"><?= __d('bouncer', 'Field') ?></th>
+                                <th class="bouncer-col-w-18"><?= __d('bouncer', 'Original') ?></th>
+                                <th class="bouncer-col-w-18"><?= __d('bouncer', 'Current') ?></th>
+                                <th class="bouncer-col-w-18"><?= __d('bouncer', 'Proposed') ?></th>
+                                <th class="bouncer-col-w-18"><?= __d('bouncer', 'Merged Result') ?></th>
+                                <th class="bouncer-col-w-16"><?= __d('bouncer', 'Changes') ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -75,7 +75,7 @@ $hasConflicts = !empty($conflict['conflicts']);
                                 <tr class="table-success">
                                     <td>
                                         <strong><?= h($field) ?></strong>
-                                        <br><span class="badge bg-success"><?= __('AUTO-MERGED') ?></span>
+                                        <br><span class="badge bg-success"><?= __d('bouncer', 'AUTO-MERGED') ?></span>
                                     </td>
                                     <td class="text-muted">
                                         <div class="small text-break"><?= $formatValue($data['original']) ?></div>
@@ -93,7 +93,7 @@ $hasConflicts = !empty($conflict['conflicts']);
                                     <td class="small">
                                         <?php if ($data['currentChanges']) { ?>
                                             <div class="text-info mb-1">
-                                                <strong><?= __('Current:') ?></strong>
+                                                <strong><?= __d('bouncer', 'Current:') ?></strong>
                                                 <?php foreach ($data['currentChanges'] as $change) { ?>
                                                     <div><?= h($change) ?></div>
                                                 <?php } ?>
@@ -101,7 +101,7 @@ $hasConflicts = !empty($conflict['conflicts']);
                                         <?php } ?>
                                         <?php if ($data['proposedChanges']) { ?>
                                             <div class="text-primary">
-                                                <strong><?= __('Proposed:') ?></strong>
+                                                <strong><?= __d('bouncer', 'Proposed:') ?></strong>
                                                 <?php foreach ($data['proposedChanges'] as $change) { ?>
                                                     <div><?= h($change) ?></div>
                                                 <?php } ?>
@@ -120,18 +120,18 @@ $hasConflicts = !empty($conflict['conflicts']);
     <?php if ($hasConflicts) { ?>
         <div class="card mb-3">
             <div class="card-header bg-danger text-white">
-                <strong><?= __('Conflicting Fields - Manual Resolution Required') ?></strong>
+                <strong><?= __d('bouncer', 'Conflicting Fields - Manual Resolution Required') ?></strong>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th class="bouncer-col-w-15"><?= __('Field') ?></th>
-                                <th class="bouncer-col-w-20"><?= __('Original') ?></th>
-                                <th class="bouncer-col-w-20"><?= __('Current') ?></th>
-                                <th class="bouncer-col-w-20"><?= __('Proposed') ?></th>
-                                <th class="bouncer-col-w-25"><?= __('Choose Value') ?></th>
+                                <th class="bouncer-col-w-15"><?= __d('bouncer', 'Field') ?></th>
+                                <th class="bouncer-col-w-20"><?= __d('bouncer', 'Original') ?></th>
+                                <th class="bouncer-col-w-20"><?= __d('bouncer', 'Current') ?></th>
+                                <th class="bouncer-col-w-20"><?= __d('bouncer', 'Proposed') ?></th>
+                                <th class="bouncer-col-w-25"><?= __d('bouncer', 'Choose Value') ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -142,7 +142,7 @@ $hasConflicts = !empty($conflict['conflicts']);
                                 <tr class="table-danger">
                                     <td>
                                         <strong><?= h($field) ?></strong>
-                                        <br><span class="badge bg-danger"><?= __('CONFLICT') ?></span>
+                                        <br><span class="badge bg-danger"><?= __d('bouncer', 'CONFLICT') ?></span>
                                     </td>
                                     <td class="text-muted">
                                         <div class="small text-break"><?= $formatValue($data['original']) ?></div>
@@ -166,12 +166,12 @@ $hasConflicts = !empty($conflict['conflicts']);
                                             <button type="button" class="btn btn-outline-info use-value"
                                                     data-field="<?= h($field) ?>"
                                                     data-value="<?= h($data['current']) ?>">
-                                                <?= __('Use Current') ?>
+                                                <?= __d('bouncer', 'Use Current') ?>
                                             </button>
                                             <button type="button" class="btn btn-outline-primary use-value"
                                                     data-field="<?= h($field) ?>"
                                                     data-value="<?= h($data['proposed']) ?>">
-                                                <?= __('Use Proposed') ?>
+                                                <?= __d('bouncer', 'Use Proposed') ?>
                                             </button>
                                         </div>
                                     </td>
@@ -203,8 +203,8 @@ $hasConflicts = !empty($conflict['conflicts']);
     <div class="card">
         <div class="card-body">
             <div class="d-flex justify-content-between">
-                <?= $this->Html->link(__('Cancel'), ['action' => 'view', $bouncerRecord->id], ['class' => 'btn btn-secondary']) ?>
-                <?= $this->Form->button(__('Save Merged Changes'), ['class' => 'btn btn-primary']) ?>
+                <?= $this->Html->link(__d('bouncer', 'Cancel'), ['action' => 'view', $bouncerRecord->id], ['class' => 'btn btn-secondary']) ?>
+                <?= $this->Form->button(__d('bouncer', 'Save Merged Changes'), ['class' => 'btn btn-primary']) ?>
             </div>
         </div>
     </div>
