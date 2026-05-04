@@ -9,6 +9,8 @@
 [![Total Downloads](https://poser.pugx.org/dereuromark/cakephp-bouncer/d/total.svg)](https://packagist.org/packages/dereuromark/cakephp-bouncer)
 [![Coding Standards](https://img.shields.io/badge/cs-PhpCollective-purple.svg?style=flat-square)](https://github.com/php-collective/code-sniffer)
 
+This branch is for **CakePHP 5.1+**. See [version map](https://github.com/dereuromark/cakephp-bouncer/wiki#cakephp-version-map) for details.
+
 This plugin implements an approval workflow for CakePHP applications. Users propose changes (create or edit records), and admins/moderators can review, approve, or reject those changes before they are published to the actual database tables.
 
 Perfect for:
