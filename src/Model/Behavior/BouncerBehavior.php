@@ -46,9 +46,7 @@ class BouncerBehavior extends Behavior
      */
     protected array $_defaultConfig = [
         'userField' => 'user_id',
-        'mode' => 'intercept',
         'requireApproval' => ['add', 'edit', 'delete'],
-        'exemptRoles' => [],
         'exemptUsers' => [],
         'bypassCallback' => null,
         'validateOnDraft' => true,
