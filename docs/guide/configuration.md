@@ -78,6 +78,33 @@ Controls the layout used by the admin UI.
 | `false` | Disable the plugin layout entirely — render inside the app's default layout. |
 | `string` | Use a named layout, e.g. `'Admin.default'` or `'MyTheme.admin'`, to integrate with an existing admin theme. |
 
+### `Bouncer.adminBackUrl` / `Bouncer.adminBackLabel`
+
+Optional. When set, an outline "Back to App" button appears in the admin
+header, between the brand and the AuditStash cross-link/clock — gives
+admins a one-click escape from the plugin-isolated layout back to the
+host application.
+
+`adminBackUrl` accepts anything `Router::url()` accepts: a Cake URL array,
+a path string, or a full URL. Use `'plugin' => false` to anchor the URL
+builder to the host app rather than the plugin's namespace.
+`adminBackLabel` is optional and defaults to `"Back to App"` (translated
+through the `bouncer` domain).
+
+```php
+'Bouncer' => [
+    'adminBackUrl' => [
+        'plugin' => false,
+        'prefix' => 'Admin',
+        'controller' => 'Overview',
+        'action' => 'index',
+    ],
+    'adminBackLabel' => __('Back to admin'), // optional
+],
+```
+
+When unset (the default), the button is hidden — the header looks unchanged.
+
 ### `Bouncer.standalone`
 
 When `true`, the admin controller does not extend host `AppController`'s

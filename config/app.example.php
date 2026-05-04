@@ -20,6 +20,29 @@ return [
         'adminLayout' => null,
 
         /**
+         * Back-to-App link in the admin header
+         *
+         * Optional. When set, an outline "Back to App" button appears in the
+         * admin header between the brand and the AuditStash cross-link/clock
+         * — gives admins a one-click way out of the plugin-isolated layout
+         * back to the host application's admin home (or wherever you point
+         * it).
+         *
+         * Accepts anything `\Cake\Routing\Router::url()` accepts: a Cake URL
+         * array, a path string, or a full URL. Use `'plugin' => false` to
+         * anchor the URL builder to the host app rather than this plugin.
+         *
+         * Defaults to null (button hidden).
+         */
+        // 'adminBackUrl' => ['plugin' => false, 'prefix' => 'Admin', 'controller' => 'Overview', 'action' => 'index'],
+
+        /**
+         * Optional override for the Back-to-App button's text. Defaults to
+         * "Back to App" (translated through the `bouncer` domain).
+         */
+        // 'adminBackLabel' => 'Back to admin',
+
+        /**
          * Standalone Mode
          *
          * When enabled, the admin interface operates independently without
