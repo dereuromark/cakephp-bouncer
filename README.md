@@ -11,53 +11,44 @@
 
 This branch is for **CakePHP 5.1+**. See [version map](https://github.com/dereuromark/cakephp-bouncer/wiki#cakephp-version-map) for details.
 
-This plugin implements an approval workflow for CakePHP applications. Users propose changes (create or edit records), and admins/moderators can review, approve, or reject those changes before they are published to the actual database tables.
-
-Perfect for:
-- Content management systems requiring editorial approval
-- User-generated content that needs moderation
-- Data entry systems with quality control
-- Multi-stage approval workflows
-
-**Note:** Revert functionality is intentionally out of scope for this plugin. For reverting changes to previous states, use the [cakephp-audit-stash](https://github.com/dereuromark/cakephp-audit-stash) plugin which provides comprehensive audit logging and revert capabilities. Bouncer focuses solely on the approval workflow for proposed changes.
+Approval workflow for CakePHP: users propose changes, admins/moderators review and approve or reject before the changes hit the live database. Built for content-management systems, user-generated content moderation, data-entry quality control, and multi-stage editorial workflows.
 
 ## Features
 
-- **Seamless Integration**: Add approval workflow to any table with a single behavior
-- **Draft Management**: Users automatically edit their existing drafts instead of creating duplicates
-- **Admin Interface**: Built-in UI for reviewing and approving/rejecting changes with diff view
-- **Flexible Configuration**: Configure which actions require approval, use custom bypass callbacks
-- **Transaction Safety**: Atomic approval process with rollback on errors
-- **AuditStash Integration**: Works seamlessly with cakephp-audit-stash for complete audit trail
+- **Drop-in approval workflow** — single behavior on a Table turns saves into pending drafts; original record stays untouched until approved.
+- **Admin diff viewer** — built-in UI for the queue with side-by-side and inline diffs (word-level via `jfcherng/php-diff`), filters, status badges, and one-click approve / reject with reasons.
+- **3-way merge** — proposals that became stale because the source record changed independently auto-merge non-overlapping edits; real conflicts surface for manual resolution.
+- **Draft-safe re-edits** — users editing the same record see and update their own pending draft instead of stacking duplicates; auto-supersede keeps the queue focused.
+- **Flexible bypass** — exempt user lists, custom bypass callbacks, or per-save `bypassBouncer` flag — integrate with policies, roles, or admin tooling.
+- **Pairs with AuditStash** — Bouncer logs the approval workflow; [cakephp-audit-stash](https://github.com/dereuromark/cakephp-audit-stash) logs the data changes the approvals apply.
+- **Transaction-safe** — atomic apply on approval; failures roll back cleanly and leave the queue intact.
 
 ## Installation
-
-Install via [composer](https://getcomposer.org):
 
 ```bash
 composer require dereuromark/cakephp-bouncer
 bin/cake plugin load Bouncer
-```
-
-Run the migrations to create the \`bouncer_records\` table:
-
-```bash
 bin/cake migrations migrate -p Bouncer
 ```
 
+Then add the behavior to any Table that should require approval — see the [Getting Started guide](https://dereuromark.github.io/cakephp-bouncer/guide/).
+
+> **Reverts are out of scope.** Bouncer is the gate *before* changes ship. To roll a record back *after* it shipped, use AuditStash's [Revert / Restore feature](https://dereuromark.github.io/cakephp-audit-stash/features/revert).
+
 ## Documentation
 
-See [docs/README.md](docs/README.md) for detailed documentation including:
-- Quick start guide
-- Configuration options
-- Advanced usage (bypass callbacks, programmatic approval)
-- AuditStash integration
-- How it works
+Full docs: **<https://dereuromark.github.io/cakephp-bouncer/>**
+
+- [Getting Started](https://dereuromark.github.io/cakephp-bouncer/guide/) — installation, behavior setup, controller wiring
+- [Configuration](https://dereuromark.github.io/cakephp-bouncer/guide/configuration) — behavior options and `Bouncer.*` app config
+- [Usage](https://dereuromark.github.io/cakephp-bouncer/guide/usage) — controller patterns, draft re-edit, programmatic approval
+- [View Helper](https://dereuromark.github.io/cakephp-bouncer/guide/view-helper) — render proposals in your own templates
+- [Features overview](https://dereuromark.github.io/cakephp-bouncer/features/) — admin UI, approval workflow, 3-way merge, advanced patterns, AuditStash integration
 
 ## Demo
 
-See the plugin in action: [https://sandbox.dereuromark.de/sandbox/bouncer-examples](https://sandbox.dereuromark.de/sandbox/bouncer-examples)
+<https://sandbox.dereuromark.de/sandbox/bouncer-examples>
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
