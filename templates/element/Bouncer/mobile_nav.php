@@ -34,39 +34,39 @@ $isActive = function (string $c, ?array $actions = null) use ($controller, $acti
     <div class="offcanvas-body">
         <!-- Navigation -->
         <div class="mb-4">
-            <div class="text-white-50 small text-uppercase mb-2"><?= __('Navigation') ?></div>
+            <div class="text-white-50 small text-uppercase mb-2"><?= __d('bouncer', 'Navigation') ?></div>
             <nav class="nav flex-column">
                 <a class="nav-link text-white-50 <?= $isActive('Bouncer', ['index']) ? 'text-white fw-bold' : '' ?>"
                    href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index']) ?>">
                     <i class="fas fa-list me-2"></i>
-                    <?= __('All Records') ?>
+                    <?= __d('bouncer', 'All Records') ?>
                 </a>
             </nav>
         </div>
 
         <!-- Status Filters -->
         <div class="mb-4">
-            <div class="text-white-50 small text-uppercase mb-2"><?= __('Status Filters') ?></div>
+            <div class="text-white-50 small text-uppercase mb-2"><?= __d('bouncer', 'Status Filters') ?></div>
             <nav class="nav flex-column">
                 <a class="nav-link text-white-50"
                    href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'pending']]) ?>">
                     <i class="fas fa-clock me-2"></i>
-                    <?= __('Pending') ?>
+                    <?= __d('bouncer', 'Pending') ?>
                 </a>
                 <a class="nav-link text-white-50"
                    href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'approved']]) ?>">
                     <i class="fas fa-check-circle me-2"></i>
-                    <?= __('Approved') ?>
+                    <?= __d('bouncer', 'Approved') ?>
                 </a>
                 <a class="nav-link text-white-50"
                    href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'rejected']]) ?>">
                     <i class="fas fa-times-circle me-2"></i>
-                    <?= __('Rejected') ?>
+                    <?= __d('bouncer', 'Rejected') ?>
                 </a>
                 <a class="nav-link text-white-50"
                    href="<?= $this->Url->build(['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'index', '?' => ['status' => 'all']]) ?>">
                     <i class="fas fa-globe me-2"></i>
-                    <?= __('All Statuses') ?>
+                    <?= __d('bouncer', 'All Statuses') ?>
                 </a>
             </nav>
         </div>

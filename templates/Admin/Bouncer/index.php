@@ -9,7 +9,7 @@
  */
 ?>
 <div class="bouncer index content">
-    <h1><?= __('Pending Approvals') ?></h1>
+    <h1><?= __d('bouncer', 'Pending Approvals') ?></h1>
 
     <div class="filters card mb-3">
         <div class="card-body">
@@ -46,9 +46,9 @@
                     ]) ?>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                    <?= $this->Form->button(__('Filter'), ['class' => 'btn btn-primary']) ?>
+                    <?= $this->Form->button(__d('bouncer', 'Filter'), ['class' => 'btn btn-primary']) ?>
                     <?php if ($this->request->getQueryParams()) { ?>
-                        <?= $this->Html->link(__('Clear'), ['action' => 'index'], ['class' => 'btn btn-secondary']) ?>
+                        <?= $this->Html->link(__d('bouncer', 'Clear'), ['action' => 'index'], ['class' => 'btn btn-secondary']) ?>
                     <?php } ?>
                 </div>
             </div>
@@ -66,7 +66,7 @@
                     <th><?= $this->Paginator->sort('user_id', 'Submitted By') ?></th>
                     <th><?= $this->Paginator->sort('status') ?></th>
                     <th><?= $this->Paginator->sort('created') ?></th>
-                    <th class="actions"><?= __('Actions') ?></th>
+                    <th class="actions"><?= __d('bouncer', 'Actions') ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -100,7 +100,7 @@
                         </td>
                         <td><?= h($bouncerRecord->created) ?></td>
                         <td class="actions">
-                            <?= $this->Html->link(__('Review'), ['action' => 'view', $bouncerRecord->id], ['class' => 'btn btn-sm btn-' . ($bouncerRecord->isPending() ? 'primary' : 'secondary')]) ?>
+                            <?= $this->Html->link(__d('bouncer', 'Review'), ['action' => 'view', $bouncerRecord->id], ['class' => 'btn btn-sm btn-' . ($bouncerRecord->isPending() ? 'primary' : 'secondary')]) ?>
                         </td>
                     </tr>
                 <?php } ?>

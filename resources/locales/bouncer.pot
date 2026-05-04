@@ -1,0 +1,253 @@
+# LANGUAGE translation of CakePHP Application
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2026-05-04 02:23+0200\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+msgid "All bouncer records have been deleted."
+msgstr ""
+
+msgid "No changes detected"
+msgstr ""
+
+msgid "Before:"
+msgstr ""
+
+msgid "After:"
+msgstr ""
+
+msgid "New Record Data"
+msgstr ""
+
+msgid "Field"
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Raw JSON Data"
+msgstr ""
+
+msgid "New Record"
+msgstr ""
+
+msgid "Edit to Record"
+msgstr ""
+
+msgid "User #{0}"
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "Pending Approvals"
+msgstr ""
+
+msgid "Filter"
+msgstr ""
+
+msgid "Clear"
+msgstr ""
+
+msgid "Actions"
+msgstr ""
+
+msgid "Review"
+msgstr ""
+
+msgid "Resolve Conflicts"
+msgstr ""
+
+msgid "Manual Resolution Required"
+msgstr ""
+
+msgid "Some fields have conflicting changes that could not be auto-merged. Please review and choose the correct value for each conflicting field."
+msgstr ""
+
+msgid "Auto-Merged Successfully"
+msgstr ""
+
+msgid "Some fields were automatically merged because the changes did not overlap."
+msgstr ""
+
+msgid "Record: {0} #{1}"
+msgstr ""
+
+msgid "Auto-Merged Fields"
+msgstr ""
+
+msgid "Original"
+msgstr ""
+
+msgid "Current"
+msgstr ""
+
+msgid "Proposed"
+msgstr ""
+
+msgid "Merged Result"
+msgstr ""
+
+msgid "Changes"
+msgstr ""
+
+msgid "AUTO-MERGED"
+msgstr ""
+
+msgid "Current:"
+msgstr ""
+
+msgid "Proposed:"
+msgstr ""
+
+msgid "Conflicting Fields - Manual Resolution Required"
+msgstr ""
+
+msgid "Choose Value"
+msgstr ""
+
+msgid "CONFLICT"
+msgstr ""
+
+msgid "Use Current"
+msgstr ""
+
+msgid "Use Proposed"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Save Merged Changes"
+msgstr ""
+
+msgid "Review Proposed Changes"
+msgstr ""
+
+msgid "Conflict Detected!"
+msgstr ""
+
+msgid "This record was modified after the draft was created, and some of the same fields were changed. Please review and merge the changes before approval."
+msgstr ""
+
+msgid "Note:"
+msgstr ""
+
+msgid "This record was modified after the draft was created, but the changes affect different fields. You can proceed with approval."
+msgstr ""
+
+msgid "View 3-Way Comparison"
+msgstr ""
+
+msgid "Bouncer Record Details"
+msgstr ""
+
+msgid "ID"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Record Type"
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Submitted By"
+msgstr ""
+
+msgid "Submitted"
+msgstr ""
+
+msgid "Modified"
+msgstr ""
+
+msgid "Reviewed By"
+msgstr ""
+
+msgid "Reviewed"
+msgstr ""
+
+msgid "User Note:"
+msgstr ""
+
+msgid "Reviewer Reason:"
+msgstr ""
+
+msgid "Proposed Changes"
+msgstr ""
+
+msgid "Approve Changes"
+msgstr ""
+
+msgid "Reject Changes"
+msgstr ""
+
+msgid "This proposal was rejected."
+msgstr ""
+
+msgid "Reopen for Review"
+msgstr ""
+
+msgid "Are you sure you want to reopen this proposal?"
+msgstr ""
+
+msgid "Back to List"
+msgstr ""
+
+msgid "Navigation"
+msgstr ""
+
+msgid "All Records"
+msgstr ""
+
+msgid "Status Filters"
+msgstr ""
+
+msgid "Pending"
+msgstr ""
+
+msgid "Approved"
+msgstr ""
+
+msgid "Rejected"
+msgstr ""
+
+msgid "All Statuses"
+msgstr ""
+
+msgid "Debug"
+msgstr ""
+
+msgid "Reset (truncate)"
+msgstr ""
+
+msgid "This wipes ALL bouncer records. Continue?"
+msgstr ""
+
+msgid "Page navigation"
+msgstr ""
+
+msgid "Page {{page}} of {{pages}}, showing {{current}} record(s) out of {{count}} total"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "Server Time"
+msgstr ""
+

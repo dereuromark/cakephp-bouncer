@@ -228,7 +228,7 @@ class BouncerHelper extends Helper
     public function diffInline(array $diffs): string
     {
         if (!$diffs) {
-            return '<p class="text-muted">' . __('No changes detected') . '</p>';
+            return '<p class="text-muted">' . __d('bouncer', 'No changes detected') . '</p>';
         }
 
         $output = '';
@@ -259,7 +259,7 @@ class BouncerHelper extends Helper
     public function diffSideBySide(array $diffs): string
     {
         if (!$diffs) {
-            return '<p class="text-muted">' . __('No changes detected') . '</p>';
+            return '<p class="text-muted">' . __d('bouncer', 'No changes detected') . '</p>';
         }
 
         $output = '';
@@ -292,11 +292,11 @@ class BouncerHelper extends Helper
     {
         $output = '<div class="row">';
         $output .= '<div class="col-md-6">';
-        $output .= '<span class="text-muted">' . __('Before:') . '</span>';
+        $output .= '<span class="text-muted">' . __d('bouncer', 'Before:') . '</span>';
         $output .= '<div class="p-2 bg-light border rounded"><del>' . h($baseStr) . '</del></div>';
         $output .= '</div>';
         $output .= '<div class="col-md-6">';
-        $output .= '<span class="text-muted">' . __('After:') . '</span>';
+        $output .= '<span class="text-muted">' . __d('bouncer', 'After:') . '</span>';
         $output .= '<div class="p-2 bg-warning border rounded"><ins><strong>' . h($proposedStr) . '</strong></ins></div>';
         $output .= '</div>';
         $output .= '</div>';
@@ -315,9 +315,9 @@ class BouncerHelper extends Helper
     {
         $data = $bouncerRecord->getData();
 
-        $output = '<h5>' . __('New Record Data') . '</h5>';
+        $output = '<h5>' . __d('bouncer', 'New Record Data') . '</h5>';
         $output .= '<table class="table table-bordered">';
-        $output .= '<thead><tr><th>' . __('Field') . '</th><th>' . __('Value') . '</th></tr></thead>';
+        $output .= '<thead><tr><th>' . __d('bouncer', 'Field') . '</th><th>' . __d('bouncer', 'Value') . '</th></tr></thead>';
         $output .= '<tbody>';
 
         foreach ($data as $field => $value) {
@@ -345,7 +345,7 @@ class BouncerHelper extends Helper
     public function rawJsonDetails(BouncerRecord $bouncerRecord): string
     {
         $output = '<details class="mt-3">';
-        $output .= '<summary><strong>' . __('Raw JSON Data') . '</strong></summary>';
+        $output .= '<summary><strong>' . __d('bouncer', 'Raw JSON Data') . '</strong></summary>';
         $output .= '<pre class="bg-light p-3 mt-2"><code>';
         $output .= h(json_encode($bouncerRecord->getData(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         $output .= '</code></pre></details>';
@@ -383,12 +383,12 @@ class BouncerHelper extends Helper
     public function recordTypeBadge(BouncerRecord $bouncerRecord): string
     {
         if ($bouncerRecord->isNewRecordProposal()) {
-            return '<span class="badge bg-success">' . __('New Record') . '</span>';
+            return '<span class="badge bg-success">' . __d('bouncer', 'New Record') . '</span>';
         }
 
         $recordLink = $this->formatRecord($bouncerRecord->source, $bouncerRecord->primary_key);
 
-        return '<span class="badge bg-info">' . __('Edit to Record') . '</span> ' . $recordLink;
+        return '<span class="badge bg-info">' . __d('bouncer', 'Edit to Record') . '</span> ' . $recordLink;
     }
 
     /**
@@ -566,7 +566,7 @@ JS;
             return '<em class="text-muted">N/A</em>';
         }
 
-        $label = $displayName ?: __('User #{0}', $userId);
+        $label = $displayName ?: __d('bouncer', 'User #{0}', $userId);
 
         $linkConfig = Configure::read('Bouncer.linkUser');
         if ($linkConfig) {
@@ -600,7 +600,7 @@ JS;
     public function formatRecord(string $source, string|int|null $primaryKey): string
     {
         if ($primaryKey === null) {
-            return '<span class="badge bg-success">' . __('New') . '</span>';
+            return '<span class="badge bg-success">' . __d('bouncer', 'New') . '</span>';
         }
 
         // Extract plugin and table name from source
