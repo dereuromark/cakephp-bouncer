@@ -77,9 +77,21 @@ difference between "readable" and "headache."
 | Method | Returns |
 |---|---|
 | `newRecordTable($bouncerRecord)` | full-width field/value table for proposed *new* records (no diff to render) |
+| `rawJsonDetails($bouncerRecord)` | collapsible "raw JSON" view of `data` / `original_data` / `meta` — useful for debugging |
 | `statusBadge($status)` | colored badge — `pending` / `approved` / `rejected` / `superseded` |
 | `recordTypeBadge($bouncerRecord)` | "New record" / "Edit" / "Delete" badge based on the proposal type |
 | `formatValue($value)` | one cell of HTML — handles `null`, bools, arrays, long strings |
+
+### Linking users and records
+
+| Method | Returns |
+|---|---|
+| `formatUser($userId, $displayName = null)` | display name, optionally linked via `Bouncer.linkUser` |
+| `formatRecord($source, $primaryKey)` | record reference, optionally linked via `Bouncer.linkRecord` |
+
+Both honour the link configuration documented in
+[Configuration → `Bouncer.linkUser` / `linkRecord`](./configuration#bouncer-linkuser).
+Without link config configured, they fall back to plain text (escaped).
 
 ## Example: "your pending changes" page
 
@@ -108,8 +120,11 @@ echo $this->Bouncer->diffStyles();
                 <?= $this->Bouncer->newRecordTable($record) ?>
             <?php endif ?>
 
+            <?php if ($record->note): ?>
+                <p class="mt-3"><strong>Your note:</strong> <?= h($record->note) ?></p>
+            <?php endif ?>
             <?php if ($record->reason): ?>
-                <p class="mt-3"><strong>Reviewer note:</strong> <?= h($record->reason) ?></p>
+                <p class="mt-2"><strong>Reviewer reason:</strong> <?= h($record->reason) ?></p>
             <?php endif ?>
         </div>
     </div>

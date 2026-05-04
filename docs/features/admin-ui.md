@@ -18,12 +18,22 @@ $routes->prefix('Admin', function (RouteBuilder $routes) {
 
 `/admin/bouncer/bouncer` is the queue. `fallbacks()` wires the rest:
 
-| Path | Action |
-|---|---|
-| `/admin/bouncer/bouncer` | List pending / approved / rejected records, filter by status, table, user |
-| `/admin/bouncer/bouncer/view/{id}` | Side-by-side and inline diff of one proposal |
-| `/admin/bouncer/bouncer/approve/{id}` | Approve — applies changes to the source table |
-| `/admin/bouncer/bouncer/reject/{id}` | Reject with optional reason |
+| Path | Method | Action | Purpose |
+|---|---|---|---|
+| `/admin/bouncer/bouncer` | GET | `index` | List proposals — filter by status, table, user |
+| `/admin/bouncer/bouncer/view/{id}` | GET | `view` | Show one proposal — side-by-side and inline diff, metadata, proposer note |
+| `/admin/bouncer/bouncer/resolve/{id}` | GET | `resolve` | Combined approve/reject screen with reason text-area |
+| `/admin/bouncer/bouncer/approve/{id}` | POST | `approve` | Apply the proposed changes to the source table |
+| `/admin/bouncer/bouncer/reject/{id}` | POST | `reject` | Mark as rejected, store the reviewer's reason |
+| `/admin/bouncer/bouncer/reopen/{id}` | POST | `reopen` | Move an approved / rejected / superseded row back to `pending` for re-review |
+| `/admin/bouncer/bouncer/delete/{id}` | POST | `delete` | Hard-delete the bouncer record entirely (audit-trail-aware: pair with AuditStash if you want to keep a deletion log) |
+| `/admin/bouncer/bouncer/reset` | POST | `reset` | Truncate the entire bouncer queue — debug / dev tooling, gate behind a strict access check |
+
+`reset` is the heavy hammer — it clears the whole `bouncer_records`
+table. Don't expose it to anyone you wouldn't trust with a SQL `TRUNCATE`.
+The default `Bouncer.accessCheck` doesn't separately gate it; use a
+stricter closure or your authorization layer if your environment needs
+that distinction.
 
 ## Access control
 

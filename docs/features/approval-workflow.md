@@ -67,11 +67,19 @@ The `bouncer_records` table stores one row per proposal:
 | `data` | JSON | proposed changes (full entity payload for new records, dirty fields for edits) |
 | `original_data` | JSON / null | snapshot of the source record at draft time — drives diffs and 3-way merge |
 | `original_modified` | datetime / null | source record's `modified` timestamp at draft time — drives staleness detection |
-| `reason` | text / null | reviewer's note when rejecting (or approving with comment) |
+| `note` | string / null | the **proposer's** note explaining what they changed and why |
+| `reason` | text / null | the **reviewer's** note when approving or rejecting |
 | `created` / `modified` / `reviewed` | datetime | the usual lifecycle timestamps |
 
 `primary_key` is `null` for proposals that would create a new row.
 `original_data` is `null` for the same reason.
+
+> [!IMPORTANT]
+> `note` and `reason` are two different fields with two different
+> authors. The bundled admin viewer renders them as **"User Note:"** (the
+> proposer's `note`) and **"Reviewer Reason:"** (the reviewer's `reason`).
+> Don't conflate them — see [Capturing a proposer note](../guide/usage#capturing-a-proposer-note)
+> for how to populate `note` from your forms.
 
 ## Status transitions
 
@@ -91,23 +99,60 @@ showing it (unless the admin filters for that status).
 
 ## Entity helpers on `BouncerRecord`
 
-The entity exposes a few convenience methods used by the admin UI and
-useful in custom code:
+The entity exposes predicates and accessors that the admin UI uses
+internally and that are useful in your own templates and custom flows.
+
+### Status predicates
+
+| Method | Returns |
+|---|---|
+| `isPending()` | `true` when `status === 'pending'` |
+| `isApproved()` | `true` when `status === 'approved'` |
+| `isRejected()` | `true` when `status === 'rejected'` |
+
+### Proposal-type predicates
+
+| Method | Returns |
+|---|---|
+| `isNewRecordProposal()` | `true` when the proposal would create a row (`primary_key` is null) |
+| `isEditProposal()` | `true` when the proposal would modify an existing row |
+| `isDeleteProposal()` | `true` when the proposal would delete an existing row |
+
+These drive `BouncerHelper::recordTypeBadge()` — use them when you need
+the same branching in your own templates.
+
+### Data accessors
+
+| Method | Returns |
+|---|---|
+| `getData()` | proposed payload — the merged data if `setMergedData()` was called, otherwise the original proposal |
+| `getOriginalData()` | snapshot of the source record at draft time |
+| `hasMergedData()` | `true` if a custom merge result has been set |
+| `getMergedData()` | the explicitly-set merged payload (empty array if none) |
+
+### Staleness and merging
+
+| Method | Returns |
+|---|---|
+| `hasOriginalModified()` | `true` if the row has an `original_modified` timestamp |
+| `canDetectStaleness()` | `true` if staleness can be evaluated (proposal is an edit + has `original_modified`) |
+| `isStale($currentSourceEntity)` | `true` if the source has moved since the draft was made |
+| `buildMergeResult($currentSourceEntity, $skipFields = ['id', 'created', 'modified', '_delete'])` | full 3-way merge result, or `null` if not stale |
+| `setMergedData(array $mergedData)` | override the apply payload (for UI-driven conflict resolution) |
 
 ```php
-// Has the source record changed since this draft was made?
-$bouncerRecord->isStale($currentSourceEntity);
+// Standard pattern: only render the merge UI when there's something to merge
+if ($bouncerRecord->isEditProposal() && $bouncerRecord->canDetectStaleness()) {
+    $current = $articles->get($bouncerRecord->primary_key);
 
-// What does a 3-way merge look like? Returns null if not stale.
-$result = $bouncerRecord->buildMergeResult($currentSourceEntity);
-// $result = ['merged' => [...], 'conflicts' => [...], 'autoMerged' => bool, 'hasConflicts' => bool]
-
-// Override the apply payload with your own merged data (UI-driven
-// conflict resolution, custom logic, etc.)
-$bouncerRecord->setMergedData(['title' => 'Hand-merged title', /* ... */]);
-
-// Read the proposed payload (whatever's been set, including merged data)
-$data = $bouncerRecord->getData();
+    if ($bouncerRecord->isStale($current)) {
+        $result = $bouncerRecord->buildMergeResult($current);
+        if ($result['hasConflicts']) {
+            // surface conflict UI; resolve into $mergedData; then:
+            $bouncerRecord->setMergedData($mergedData);
+        }
+    }
+}
 ```
 
 ## UUID support

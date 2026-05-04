@@ -188,16 +188,31 @@ public function dashboard()
 {
     $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
-    $pendingCount = $bouncerTable
-        ->find()
-        ->where(['status' => 'pending'])
-        ->count();
+    // findPending() is the canonical finder — equivalent to
+    // ->find()->where(['status' => 'pending']) but reads cleaner.
+    $pendingCount = $bouncerTable->findPending()->count();
 
     $this->set(compact('pendingCount'));
 }
 ```
 
 Render it as a badge in the dashboard tile linking to
-`/admin/bouncer/bouncer`. Skip the count + N+1 issues by querying the
-unfiltered `find()` — Bouncer's table is single-row-per-proposal, so
-`count()` is cheap.
+`/admin/bouncer/bouncer`. Bouncer's table is single-row-per-proposal, so
+the unfiltered `count()` is cheap.
+
+For per-record checks (e.g., a "you have changes pending on this article"
+banner on the public view), use `findPendingForRecord` — it scopes by
+source / primary key and optionally by user:
+
+```php
+$pending = $bouncerTable
+    ->findPendingForRecord('Articles', $articleId, $userId)
+    ->first();
+
+if ($pending) {
+    // surface "your draft is in review" UI
+}
+```
+
+`$userId` is optional — omit it to find any pending proposal for that
+record, regardless of who proposed it.

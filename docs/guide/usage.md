@@ -33,7 +33,7 @@ public function add()
 }
 ```
 
-### Edit (with draft re-load)
+### Edit (with draft overlay via `withDraft`)
 
 ```php
 public function edit($id = null)
@@ -43,10 +43,10 @@ public function edit($id = null)
 
     // If the user has a pending draft for this record, overlay it on the
     // published row so they're editing their own proposal, not the live
-    // record.
-    $draft = $this->Articles->getBehavior('Bouncer')->loadDraft($id, $userId);
+    // record. withDraft() patches in-place and returns the BouncerRecord
+    // (or null if no draft exists).
+    $draft = $this->Articles->getBehavior('Bouncer')->withDraft($article, $userId);
     if ($draft) {
-        $article = $this->Articles->patchEntity($article, $draft->getData());
         $this->set('draftId', $draft->id);
         $this->Flash->info('You are editing your pending draft');
     }
@@ -55,8 +55,18 @@ public function edit($id = null)
         $article = $this->Articles->patchEntity($article, $this->request->getData());
         $this->Articles->save($article, ['bouncerUserId' => $userId]);
 
-        if ($this->Articles->getBehavior('Bouncer')->wasBounced()) {
+        $behavior = $this->Articles->getBehavior('Bouncer');
+
+        if ($behavior->wasBounced()) {
             $this->Flash->success('Your changes are pending approval');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        // The user reverted their draft to the original — bouncer
+        // removes the now-empty draft from the queue.
+        if ($behavior->wasDraftRemoved()) {
+            $this->Flash->info('Your pending draft was cancelled');
 
             return $this->redirect(['action' => 'index']);
         }
@@ -66,8 +76,14 @@ public function edit($id = null)
 }
 ```
 
-The `loadDraft()` lookup uses (source, primary key, user ID) — drafts from
-*other* users are not surfaced to the current user.
+`withDraft()` is the canonical helper — it does the `loadDraft + patchEntity`
+combination in one call. The lookup uses (source, primary key, user ID),
+so drafts from *other* users are not surfaced to the current user.
+
+If you need the BouncerRecord object without overlaying onto an existing
+entity, `loadDraft($primaryKey, $userId)` returns it directly. After a
+save, `getLastBouncerRecord()` returns the row that was just queued —
+useful for "show what was submitted" success screens.
 
 ### Reading the user from the entity
 
@@ -100,6 +116,51 @@ if ($hasDraft) {
     $this->Flash->info('You have pending changes for this record');
 }
 ```
+
+## Capturing a proposer note
+
+The `bouncer_records` table has a dedicated `note` column for the
+**proposer's** explanation ("fixing a typo in §3", "rephrased the intro
+for clarity"). It's separate from the `reason` column, which holds the
+**reviewer's** approval / rejection note.
+
+Add a textarea to your form and pass the value through save options:
+
+```php
+// In your form:
+<?= $this->Form->control('bouncer_note', [
+    'label' => 'Why are you proposing this change?',
+    'type'  => 'textarea',
+    'rows'  => 3,
+]) ?>
+
+// In your controller:
+public function edit($id = null)
+{
+    $article = $this->Articles->get($id);
+    $userId  = $this->Authentication->getIdentity()->getIdentifier();
+    $this->Articles->getBehavior('Bouncer')->withDraft($article, $userId);
+
+    if ($this->request->is(['patch', 'post', 'put'])) {
+        $data = $this->request->getData();
+        $note = $data['bouncer_note'] ?? null;
+        unset($data['bouncer_note']); // not part of the entity
+
+        $article = $this->Articles->patchEntity($article, $data);
+        $this->Articles->save($article, [
+            'bouncerUserId' => $userId,
+            'bouncerNote'   => $note,
+        ]);
+
+        // ...wasBounced / wasDraftRemoved branches as usual
+    }
+
+    $this->set(compact('article'));
+}
+```
+
+The bundled admin viewer renders the note next to the diff so reviewers
+have the proposer's intent at hand when deciding whether to approve.
 
 ## Bypassing per save
 

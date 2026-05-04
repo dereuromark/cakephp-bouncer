@@ -58,7 +58,7 @@ $bouncer->applyApprovedChanges($bouncerRecord, [
     // Fields to leave alone during merge. Useful for fields that are
     // either machine-managed (timestamps, hash columns) or that should
     // never be reverted via approval (status, locked flags).
-    'skipFields' => ['id', 'created', 'modified', 'internal_field'],
+    'skipFields' => ['id', 'created', 'modified', '_delete'],
 ]);
 ```
 
