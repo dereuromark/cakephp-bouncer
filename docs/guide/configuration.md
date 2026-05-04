@@ -33,18 +33,6 @@ $this->addBehavior('Bouncer.Bouncer', [
 ]);
 ```
 
-### `mode` and `exemptRoles` — declared but not yet wired
-
-`config/app.example.php` and the behavior's `_defaultConfig` ship two
-keys that are placeholders for future iterations:
-
-| Key | Default | Status |
-|---|---|---|
-| `mode` | `'intercept'` | declared; never read at runtime — reserved for a future "advisory mode" that would warn admins instead of intercepting saves |
-| `exemptRoles` | `[]` | declared; never read at runtime — reserved for built-in role-based bypass once the plugin can introspect role information uniformly |
-
-For now, **role-based bypass goes through `bypassCallback`** — see the
-[Advanced Patterns role-based example](/features/advanced-patterns#role-based-example).
 
 ### `requireApproval`
 
