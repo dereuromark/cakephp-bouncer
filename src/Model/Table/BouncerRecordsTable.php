@@ -11,6 +11,7 @@ use Cake\Validation\Validator;
 /**
  * BouncerRecords Model
  *
+ * @extends \Cake\ORM\Table<array{Timestamp: \Cake\ORM\Behavior\TimestampBehavior}>
  * @method \Bouncer\Model\Entity\BouncerRecord newEmptyEntity()
  * @method \Bouncer\Model\Entity\BouncerRecord newEntity(array $data, array $options = [])
  * @method array<\Bouncer\Model\Entity\BouncerRecord> newEntities(array $data, array $options = [])
@@ -25,7 +26,6 @@ use Cake\Validation\Validator;
  * @method \Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord>|false deleteMany(iterable $entities, array $options = [])
  * @method \Cake\Datasource\ResultSetInterface<\Bouncer\Model\Entity\BouncerRecord> deleteManyOrFail(iterable $entities, array $options = [])
  * @mixin \Cake\ORM\Behavior\TimestampBehavior
- * @extends \Cake\ORM\Table<array{Timestamp: \Cake\ORM\Behavior\TimestampBehavior}>
  */
 class BouncerRecordsTable extends Table
 {
