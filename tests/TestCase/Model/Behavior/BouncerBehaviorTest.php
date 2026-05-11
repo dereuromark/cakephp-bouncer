@@ -961,6 +961,59 @@ class BouncerBehaviorTest extends TestCase
     }
 
     /**
+     * Regression: with the prior loose `!=` comparison, editing a string
+     * column from `"0"` to the literal boolean `false` was classified as a
+     * revert (`'0' == false`), and the user's intended draft was silently
+     * deleted. With the cast-to-string strict comparison, the edit creates
+     * the draft as expected.
+     *
+     * @return void
+     */
+    public function testFalsyEditDoesNotFalselyTriggerRevert(): void
+    {
+        $article = $this->Articles->newEntity([
+            'title' => '0', // string zero — the foot-gun input
+            'body' => 'Body',
+            'user_id' => 1,
+        ]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['edit'],
+            'autoSupersede' => true,
+        ]);
+
+        // First proposal: change title from "0" to "Real Edit".
+        $article = $this->Articles->get($articleId);
+        $article = $this->Articles->patchEntity($article, ['title' => 'Real Edit']);
+        $this->Articles->save($article, ['bouncerUserId' => 2]);
+
+        $pendingCount = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->count();
+        $this->assertEquals(1, $pendingCount, 'First edit should create a draft.');
+
+        // Now re-edit, this time to a value that *loosely* equals the
+        // original ("0" == false). Under the old behavior this matched the
+        // original and dropped the draft. Under the strict comparison the
+        // draft is kept (these are different values).
+        $article = $this->Articles->get($articleId);
+        $article->set('title', false);
+        $article->setDirty('title', true);
+        $this->Articles->save($article, ['bouncerUserId' => 2]);
+
+        $pendingCount = $this->BouncerRecords->find()
+            ->where(['primary_key' => $articleId, 'status' => 'pending'])
+            ->count();
+        $this->assertEquals(
+            1,
+            $pendingCount,
+            'Edit to boolean false (loosely equal to string "0") must NOT be classified as a revert.',
+        );
+    }
+
+    /**
      * Test bypassCallback allows custom bypass logic
      */
     public function testBypassCallbackAllowsBypass(): void

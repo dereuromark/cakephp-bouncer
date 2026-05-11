@@ -105,6 +105,24 @@ class BouncerBehavior extends Behavior
      * the host then rolls back, the bouncer record is rolled back with it (acceptable trade-off
      * vs. corrupting the host's data).
      *
+     * Normalize a value for the revert / unchanged comparison.
+     *
+     * JSON-encode so the comparison preserves type distinctions PHP's loose
+     * `==` would collapse — `'0' == false`, `'' == null`, `'abc' == 0` —
+     * while leaving same-type values (string `"foo"` vs string `"foo"`)
+     * trivially equal. The JSON shape also captures arrays and nested
+     * structures consistently.
+     *
+     * @param mixed $value
+     *
+     * @return string
+     */
+    protected function normalizeForCompare(mixed $value): string
+    {
+        return json_encode($value, JSON_UNESCAPED_UNICODE) ?: '';
+    }
+
+    /**
      * @param \Cake\Database\Connection $connection Connection
      *
      * @return void
@@ -375,12 +393,16 @@ class BouncerBehavior extends Behavior
                 $proposedData = json_decode($data, true) ?: [];
                 $originalDataArray = json_decode($originalData ?? '{}', true) ?: [];
 
-                // Compare only the fields that are in the proposed data
+                // Compare only the fields that are in the proposed data.
+                // Both sides are normalized to string before strict comparison
+                // so a numeric column round-tripped through JSON (string vs int)
+                // doesn't read as "changed". Loose `!=` here used to coerce
+                // `'0' == false` and similar nulls — that misclassified real
+                // user edits as reverts and silently dropped the draft.
                 $isReverted = true;
                 foreach ($proposedData as $field => $value) {
                     $originalValue = $originalDataArray[$field] ?? null;
-                    // Use loose comparison to handle string/int mismatches
-                    if ($originalValue != $value) {
+                    if ($this->normalizeForCompare($originalValue) !== $this->normalizeForCompare($value)) {
                         $isReverted = false;
 
                         break;
@@ -420,12 +442,11 @@ class BouncerBehavior extends Behavior
                 $proposedData = json_decode($data, true) ?: [];
                 $originalDataArray = json_decode($originalData, true) ?: [];
 
-                // Compare only the fields that are in the proposed data
+                // Same normalization as the revert-detection branch above.
                 $isUnchanged = true;
                 foreach ($proposedData as $field => $value) {
                     $originalValue = $originalDataArray[$field] ?? null;
-                    // Use loose comparison to handle string/int mismatches
-                    if ($originalValue != $value) {
+                    if ($this->normalizeForCompare($originalValue) !== $this->normalizeForCompare($value)) {
                         $isUnchanged = false;
 
                         break;

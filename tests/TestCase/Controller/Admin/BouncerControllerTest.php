@@ -678,6 +678,37 @@ class BouncerControllerTest extends TestCase
     }
 
     /**
+     * Rejecting without a reason — direct POST that bypasses the form's
+     * `required` attribute — must not be persisted. Moderator accountability
+     * depends on every rejection carrying a server-validated rationale.
+     *
+     * @return void
+     */
+    public function testRejectRequiresNonEmptyReason(): void
+    {
+        $bouncerRecord = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'primary_key' => null,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Test']),
+        ]);
+        $this->BouncerRecords->save($bouncerRecord);
+
+        $this->post(
+            ['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'reject', $bouncerRecord->id],
+            ['reason' => '   '],
+        );
+
+        $this->assertRedirect(['action' => 'view', $bouncerRecord->id]);
+        $this->assertFlashMessage('A rejection reason is required.');
+
+        $unchangedRecord = $this->BouncerRecords->get($bouncerRecord->id);
+        $this->assertEquals('pending', $unchangedRecord->status, 'Record must remain pending when reason is empty.');
+        $this->assertNull($unchangedRecord->reason);
+    }
+
+    /**
      * Test reopen method requires POST
      *
      * @return void

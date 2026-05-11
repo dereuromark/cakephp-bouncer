@@ -497,11 +497,18 @@ class BouncerController extends AppController
             return $this->redirect(['action' => 'index']);
         }
 
+        $reason = trim((string)$this->request->getData('reason'));
+        if ($reason === '') {
+            $this->Flash->error('A rejection reason is required.');
+
+            return $this->redirect(['action' => 'view', $id]);
+        }
+
         $this->BouncerRecords->patchEntity($bouncerRecord, [
             'status' => 'rejected',
             'reviewer_id' => $this->request->getAttribute('identity')?->getIdentifier(),
             'reviewed' => new DateTime(),
-            'reason' => $this->request->getData('reason'),
+            'reason' => $reason,
         ]);
 
         if ($this->BouncerRecords->save($bouncerRecord)) {
