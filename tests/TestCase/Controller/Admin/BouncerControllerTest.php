@@ -701,7 +701,7 @@ class BouncerControllerTest extends TestCase
         );
 
         $this->assertRedirect(['action' => 'view', $bouncerRecord->id]);
-        $this->assertFlashMessage('A rejection reason is required.');
+        $this->assertFlashMessage(__d('bouncer', 'A rejection reason is required.'));
 
         $unchangedRecord = $this->BouncerRecords->get($bouncerRecord->id);
         $this->assertEquals('pending', $unchangedRecord->status, 'Record must remain pending when reason is empty.');

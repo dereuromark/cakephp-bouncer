@@ -499,7 +499,7 @@ class BouncerController extends AppController
 
         $reason = trim((string)$this->request->getData('reason'));
         if ($reason === '') {
-            $this->Flash->error('A rejection reason is required.');
+            $this->Flash->error(__d('bouncer', 'A rejection reason is required.'));
 
             return $this->redirect(['action' => 'view', $id]);
         }
