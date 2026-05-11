@@ -290,6 +290,13 @@ $cspNonce = (string)$this->getRequest()->getAttribute('cspNonce', '');
         .diff-wrapper .old { background-color: #ffebe9; }
         .diff-wrapper .new { background-color: #e6ffec; }
         pre { background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; max-width: 100%; }
+
+        /* Lighter placeholder so it doesn't get mistaken for real content */
+        .form-control::placeholder,
+        .form-select::placeholder {
+            color: #adb5bd;
+            opacity: 1;
+        }
     </style>
     <?= $this->fetch('css') ?>
 </head>
