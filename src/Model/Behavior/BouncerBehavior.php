@@ -153,12 +153,28 @@ class BouncerBehavior extends Behavior
     }
 
     /**
+     * Property names CakePHP's `Connection` has used (and may use) for the
+     * current transaction-nesting depth. Probed in order so we keep working
+     * if/when cake-core renames `_transactionLevel` (the underscore prefix is
+     * a legacy 4.x convention that the project is gradually shedding).
+     *
+     * @var list<string>
+     */
+    protected const TRANSACTION_LEVEL_CANDIDATES = ['_transactionLevel', 'transactionLevel'];
+
+    /**
      * Detect whether the connection's current transaction was opened by the host application
      * (i.e. the nesting level is greater than 1, meaning more than just the ORM save's own
      * transaction is on the stack).
      *
-     * Reads the protected `_transactionLevel` property via reflection because CakePHP's
-     * Connection does not expose it through a public accessor.
+     * Reads the protected transaction-level property via reflection because CakePHP's
+     * Connection does not expose it through a public accessor. Tries multiple candidate
+     * property names (see {@see self::TRANSACTION_LEVEL_CANDIDATES}) so a rename in a
+     * future cake-core release does not silently flip the behavior into the unsafe branch.
+     * If introspection genuinely fails, the method returns `true` — that's the safe
+     * direction (skip force-commit, let the bouncer record participate in the host
+     * transaction) rather than the dangerous direction (force-commit and corrupt
+     * the host's transaction).
      *
      * @param \Cake\Database\Connection $connection Connection
      *
@@ -166,25 +182,40 @@ class BouncerBehavior extends Behavior
      */
     protected function isHostTransactionWrapped(Connection $connection): bool
     {
-        try {
-            $reflection = new ReflectionObject($connection);
-            if (!$reflection->hasProperty('_transactionLevel')) {
-                return false;
+        $reflection = new ReflectionObject($connection);
+        foreach (static::TRANSACTION_LEVEL_CANDIDATES as $candidate) {
+            if (!$reflection->hasProperty($candidate)) {
+                continue;
             }
-            $property = $reflection->getProperty('_transactionLevel');
-            $level = $property->getValue($connection);
+            try {
+                $level = $reflection->getProperty($candidate)->getValue($connection);
+            } catch (Throwable) {
+                continue;
+            }
             if (!is_int($level)) {
-                return false;
+                continue;
             }
 
             // Level 1 means only the ORM save() opened the transaction (the expected case).
             // Level >= 2 means the host wrapped the save in its own transactional() block.
             return $level > 1;
-        } catch (Throwable) {
-            // If reflection fails for any reason (future CakePHP version renames the property),
-            // be conservative and treat as wrapped to avoid corrupting host transactions.
-            return true;
         }
+
+        // Could not introspect transaction depth on any known property layout.
+        // Be conservative: treat as host-wrapped so we DO NOT force-commit on
+        // top of a host transaction. Bouncer records will roll back with the
+        // host if the host rolls back, which is the lesser of two evils.
+        Log::warning(
+            'Bouncer: unable to detect transaction nesting depth on the connection '
+            . '(no known transaction-level property found). Assuming the host '
+            . 'transaction wraps the save and skipping force-commit; bouncer '
+            . 'records will participate in the host transaction. If your CakePHP '
+            . 'version exposes transaction depth under a new property name, extend '
+            . 'BouncerBehavior::TRANSACTION_LEVEL_CANDIDATES accordingly.',
+            ['scope' => ['bouncer']],
+        );
+
+        return true;
     }
 
     /**

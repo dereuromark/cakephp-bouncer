@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Bouncer\Test\TestCase\Model\Behavior;
 
+use Bouncer\Model\Behavior\BouncerBehavior;
 use Bouncer\Model\Entity\BouncerRecord;
+use Cake\Database\Connection;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\TestSuite\TestCase;
 use Throwable;
@@ -1826,6 +1828,44 @@ class BouncerBehaviorTest extends TestCase
             'Seed Title',
             $hostRow->title,
             'Host transaction rollback was lost — Bouncer force-committed the outer transaction.',
+        );
+    }
+
+    /**
+     * Regression: if cake-core ever renames the protected `_transactionLevel`
+     * property (it is a 4.x-style legacy convention), the behavior must NOT
+     * silently flip into the unsafe "not wrapped → force-commit" branch.
+     * Probing all known property names should fail-safe to `true` (treat as
+     * host-wrapped and SKIP force-commit).
+     *
+     * Models the rename by subclassing the behavior and pointing its
+     * candidate-property list at names that don't exist on the real
+     * Connection class.
+     *
+     * @return void
+     */
+    public function testIsHostTransactionWrappedFailsSafeWhenPropertyMissing(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+        $connection = $this->Articles->getConnection();
+
+        $behavior = new class ($this->Articles) extends BouncerBehavior {
+            /**
+             * @var array
+             */
+            protected const TRANSACTION_LEVEL_CANDIDATES = ['__no_such_property__', '__also_missing__'];
+
+            public function callIsHostTransactionWrapped(Connection $connection): bool
+            {
+                return $this->isHostTransactionWrapped($connection);
+            }
+        };
+
+        $this->assertTrue(
+            $behavior->callIsHostTransactionWrapped($connection),
+            'When no candidate property is found on the connection, the safe default is to '
+            . 'treat the transaction as host-wrapped (skip force-commit). Returning false here '
+            . 'would mean force-committing on top of a host transaction — the dangerous direction.',
         );
     }
 }

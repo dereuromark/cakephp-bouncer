@@ -44,6 +44,7 @@ class BouncerRecordsFixture extends TestFixture
             'idx_status' => ['type' => 'index', 'columns' => ['status']],
             'idx_created' => ['type' => 'index', 'columns' => ['created']],
             'idx_source_primary_status' => ['type' => 'index', 'columns' => ['source', 'primary_key', 'status']],
+            'bouncer_pending_lookup' => ['type' => 'index', 'columns' => ['source', 'primary_key', 'status', 'user_id']],
         ],
     ];
 
