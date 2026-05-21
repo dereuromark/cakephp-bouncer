@@ -4,6 +4,7 @@ export default defineConfig({
   title: 'cakephp-bouncer',
   description: 'Approval workflow for CakePHP — propose, review, approve or reject changes with diff and 3-way merge.',
   base: '/cakephp-bouncer/',
+  cleanUrls: true,
   head: [
     ['link', { rel: 'icon', href: '/cakephp-bouncer/favicon.svg', type: 'image/svg+xml' }],
   ],
