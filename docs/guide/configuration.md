@@ -175,32 +175,32 @@ record-view routes. Plugin-aware.
 Placeholders for the array/string forms: `{source}`, `{plugin}`, `{table}`,
 `{primary_key}`.
 
-## UUID Primary Keys
+## Polymorphic Column Type (`Polymorphic.type`)
 
-If your application uses UUID primary keys or UUID user IDs, the bundled
-migration's integer columns won't match. Copy and adapt:
-
-```bash
-cp vendor/dereuromark/cakephp-bouncer/config/Migrations/*.php config/Migrations/
-```
-
-Then change column types as needed, e.g.:
+The `bouncer_records.primary_key` column is polymorphic — it stores the
+primary key of whatever source table a record belongs to. Its column type
+is controlled by the global `Polymorphic.type` config key (shared across
+the plugin family):
 
 ```php
-->addColumn('primary_key', 'uuid', [
-    'default' => null,
-    'null'    => true,
-    'comment' => 'ID of record in source table, NULL for new records',
-])
-->addColumn('user_id', 'uuid', [
-    'default' => null,
-    'null'    => false,
-])
-->addColumn('reviewer_id', 'uuid', [
-    'default' => null,
-    'null'    => true,
-])
+// config/app.php or config/app_local.php
+Configure::write('Polymorphic.type', 'uuid'); // integer (default) | biginteger | uuid | binaryuuid
 ```
 
-Don't run the plugin's own migration when you've taken over with a copied
-version — your app migration is now the source of truth.
+| Value | Column type | Signedness |
+|---|---|---|
+| `integer` (default) | `INT` | follows `Migrations.unsigned_primary_keys` |
+| `biginteger` | `BIGINT` | follows `Migrations.unsigned_primary_keys` |
+| `uuid` | `CHAR(36)` | n/a |
+| `binaryuuid` | `BINARY(16)` | n/a |
+
+Set this key **before** running the plugin migration. For UUID apps:
+
+```php
+Configure::write('Polymorphic.type', 'uuid');
+```
+
+Then run the migration normally — no need to copy or adapt it.
+
+The concrete FK columns `user_id` and `reviewer_id` always remain
+`integer` and follow `Migrations.unsigned_primary_keys` independently.

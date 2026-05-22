@@ -14,11 +14,17 @@ class CreateBouncerRecords extends BaseMigration
      */
     public function up(): void
     {
-        // primary_key (polymorphic record reference), user_id and reviewer_id
-        // reference primary keys, so they follow the application's primary-key
-        // signedness. The flag is false (signed) when unset, so an unset flag yields
-        // signed columns matching the default-signed ids they reference. Unsigned only on MySQL.
+        $type = (string)Configure::read('Polymorphic.type', 'integer');
         $signed = !(bool)Configure::read('Migrations.unsigned_primary_keys', false);
+
+        $polymorphicOptions = [
+            'default' => null,
+            'null' => true,
+            'comment' => 'ID of record in source table, NULL for new records',
+        ];
+        if (in_array($type, ['integer', 'biginteger'], true)) {
+            $polymorphicOptions['signed'] = $signed;
+        }
 
         $this->table('bouncer_records')
             ->addColumn('id', 'integer', [
@@ -35,13 +41,7 @@ class CreateBouncerRecords extends BaseMigration
                 'null' => false,
                 'comment' => 'Table name (e.g., Articles)',
             ])
-            ->addColumn('primary_key', 'integer', [
-                'default' => null,
-                'limit' => 10,
-                'null' => true,
-                'signed' => $signed,
-                'comment' => 'ID of record in source table, NULL for new records',
-            ])
+            ->addColumn('primary_key', $type, $polymorphicOptions)
             ->addColumn('user_id', 'integer', [
                 'default' => null,
                 'limit' => 10,
