@@ -175,32 +175,35 @@ record-view routes. Plugin-aware.
 Placeholders for the array/string forms: `{source}`, `{plugin}`, `{table}`,
 `{primary_key}`.
 
-## UUID Primary Keys
+## Polymorphic Column Type
 
-If your application uses UUID primary keys or UUID user IDs, the bundled
-migration's integer columns won't match. Copy and adapt:
+The `bouncer_records.primary_key` column is polymorphic — it stores the
+primary key of whatever source table a record belongs to. Its column type
+is controlled by the `Polymorphic.type` config key (shared across the
+plugin family).
 
-```bash
-cp vendor/dereuromark/cakephp-bouncer/config/Migrations/*.php config/Migrations/
-```
-
-Then change column types as needed, e.g.:
+Set this key in `config/app.php` **before** running the plugin migration:
 
 ```php
-->addColumn('primary_key', 'uuid', [
-    'default' => null,
-    'null'    => true,
-    'comment' => 'ID of record in source table, NULL for new records',
-])
-->addColumn('user_id', 'uuid', [
-    'default' => null,
-    'null'    => false,
-])
-->addColumn('reviewer_id', 'uuid', [
-    'default' => null,
-    'null'    => true,
-])
+// config/app.php (merged into Configure at bootstrap, including the migrations CLI)
+'Polymorphic' => [
+    'type' => 'uuid', // integer (default) | biginteger | uuid | binaryuuid
+],
 ```
 
-Don't run the plugin's own migration when you've taken over with a copied
-version — your app migration is now the source of truth.
+| Value | Column type | Signedness |
+|---|---|---|
+| `integer` (default) | `INT` | follows `Migrations.unsigned_primary_keys` |
+| `biginteger` | `BIGINT` | follows `Migrations.unsigned_primary_keys` |
+| `uuid` | `CHAR(36)` | n/a |
+| `binaryuuid` | `BINARY(16)` | n/a |
+
+This sets the column type for **fresh installs**. Existing installs already
+have a column in place; to change its type you need an app-side migration
+that alters `bouncer_records.primary_key` — the plugin migration will not
+re-run on an existing schema.
+
+Then run the migration normally — no need to copy or adapt it.
+
+The concrete FK columns `user_id` and `reviewer_id` always remain
+`integer` and follow `Migrations.unsigned_primary_keys` independently.
