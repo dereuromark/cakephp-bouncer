@@ -175,16 +175,20 @@ record-view routes. Plugin-aware.
 Placeholders for the array/string forms: `{source}`, `{plugin}`, `{table}`,
 `{primary_key}`.
 
-## Polymorphic Column Type (`Polymorphic.type`)
+## Polymorphic Column Type
 
 The `bouncer_records.primary_key` column is polymorphic — it stores the
 primary key of whatever source table a record belongs to. Its column type
-is controlled by the global `Polymorphic.type` config key (shared across
-the plugin family):
+is controlled by the `Polymorphic.type` config key (shared across the
+plugin family).
+
+Set this key in `config/app.php` **before** running the plugin migration:
 
 ```php
-// config/app.php or config/app_local.php
-Configure::write('Polymorphic.type', 'uuid'); // integer (default) | biginteger | uuid | binaryuuid
+// config/app.php (merged into Configure at bootstrap, including the migrations CLI)
+'Polymorphic' => [
+    'type' => 'uuid', // integer (default) | biginteger | uuid | binaryuuid
+],
 ```
 
 | Value | Column type | Signedness |
@@ -194,11 +198,10 @@ Configure::write('Polymorphic.type', 'uuid'); // integer (default) | biginteger 
 | `uuid` | `CHAR(36)` | n/a |
 | `binaryuuid` | `BINARY(16)` | n/a |
 
-Set this key **before** running the plugin migration. For UUID apps:
-
-```php
-Configure::write('Polymorphic.type', 'uuid');
-```
+This sets the column type for **fresh installs**. Existing installs already
+have a column in place; to change its type you need an app-side migration
+that alters `bouncer_records.primary_key` — the plugin migration will not
+re-run on an existing schema.
 
 Then run the migration normally — no need to copy or adapt it.
 

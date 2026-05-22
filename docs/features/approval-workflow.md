@@ -159,4 +159,4 @@ if ($bouncerRecord->isEditProposal() && $bouncerRecord->canDetectStaleness()) {
 
 Bundled migrations use integer columns. UUID-keyed apps need to copy and
 adjust them — see
-[Configuration → UUID Primary Keys](../guide/configuration#uuid-primary-keys).
+[Configuration → Polymorphic Column Type](../guide/configuration#polymorphic-column-type).
