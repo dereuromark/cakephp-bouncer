@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Cake\Core\Configure;
 use Migrations\BaseMigration;
 
 class CreateBouncerRecords extends BaseMigration
@@ -13,6 +14,12 @@ class CreateBouncerRecords extends BaseMigration
      */
     public function up(): void
     {
+        // primary_key (polymorphic record reference), user_id and reviewer_id
+        // reference primary keys, so they follow the application's primary-key
+        // signedness. The flag is false (signed) when unset, so an unset flag yields
+        // signed columns matching the default-signed ids they reference. Unsigned only on MySQL.
+        $signed = !(bool)Configure::read('Migrations.unsigned_primary_keys', false);
+
         $this->table('bouncer_records')
             ->addColumn('id', 'integer', [
                 'autoIncrement' => true,
@@ -32,21 +39,21 @@ class CreateBouncerRecords extends BaseMigration
                 'default' => null,
                 'limit' => 10,
                 'null' => true,
-                'signed' => false,
+                'signed' => $signed,
                 'comment' => 'ID of record in source table, NULL for new records',
             ])
             ->addColumn('user_id', 'integer', [
                 'default' => null,
                 'limit' => 10,
                 'null' => false,
-                'signed' => false,
+                'signed' => $signed,
                 'comment' => 'User who proposed the change',
             ])
             ->addColumn('reviewer_id', 'integer', [
                 'default' => null,
                 'limit' => 10,
                 'null' => true,
-                'signed' => false,
+                'signed' => $signed,
                 'comment' => 'Admin who approved/rejected',
             ])
             ->addColumn('status', 'string', [
