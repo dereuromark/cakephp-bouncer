@@ -1,0 +1,45 @@
+// cakephp-bouncer — database schema snapshot (DBML)
+//
+// A merged snapshot of all plugin migrations under config/Migrations/.
+// Hand-maintained: update it when you add a migration that changes these tables.
+// Paste into https://dbdiagram.io (or any DBML tool) to view/diagram.
+// DBML reference: https://dbml.dbdiagram.io/docs
+//
+// Note: primary_key is a *polymorphic* reference to the source table's record — each
+// row may point at a different table — so it is intentionally not a real foreign key.
+// It defaults to a (big)integer; widen it to varchar(36) for UUID / char primary keys.
+
+Project cakephp_bouncer {
+  database_type: 'Generic'
+  Note: 'Bouncer plugin tables only. Source records are referenced loosely via primary_key.'
+}
+
+Table bouncer_records {
+  id integer [pk, increment]
+  source varchar(255) [not null, note: 'Table name (e.g., Articles)']
+  primary_key int [null, note: 'Polymorphic source record id; set Polymorphic.type to biginteger/uuid/binaryuuid to change']
+  user_id int [not null, note: 'User who proposed the change']
+  user_display varchar(255) [null, note: 'Display name for user (optional)']
+  reviewer_id int [null, note: 'Admin who approved/rejected']
+  reviewer_display varchar(255) [null, note: 'Display name for reviewer (optional)']
+  status varchar(20) [not null, default: 'pending', note: 'pending, approved, rejected, superseded']
+  data text [not null, note: 'JSON serialized entity data']
+  original_data text [null, note: 'JSON serialized original data for edits']
+  original_modified datetime [null, note: 'Timestamp of source record when draft was created']
+  note varchar(255) [null, note: 'User note explaining the reason for the change']
+  reason text [null, note: 'Approval/rejection reason']
+  reviewed datetime [null, note: 'When approved/rejected']
+  created datetime [null]
+  modified datetime [null]
+
+  indexes {
+    source
+    primary_key
+    user_id
+    reviewer_id
+    status
+    created
+    (source, primary_key, status)
+    (source, primary_key, status, user_id) [name: 'bouncer_pending_lookup']
+  }
+}
