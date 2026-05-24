@@ -90,8 +90,6 @@ class BouncerController extends AppController
 
         try {
             $allowed = $check($this->request) === true;
-        } catch (ForbiddenException $e) {
-            throw $e;
         } catch (Throwable $e) {
             Log::warning(sprintf('Bouncer.accessCheck threw %s: %s', $e::class, $e->getMessage()));
 
@@ -141,7 +139,7 @@ class BouncerController extends AppController
             ->extract('source')
             ->toArray();
 
-        $this->set(compact('bouncerRecords', 'sources', 'status', 'source', 'userId'));
+        $this->set(['bouncerRecords' => $bouncerRecords, 'sources' => $sources, 'status' => $status, 'source' => $source, 'userId' => $userId]);
 
         return null;
     }
@@ -184,12 +182,12 @@ class BouncerController extends AppController
                         }
                     }
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 $this->Flash->warning('The original record no longer exists.');
             }
         }
 
-        $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
+        $this->set(['bouncerRecord' => $bouncerRecord, 'currentRecord' => $currentRecord, 'conflict' => $conflict]);
 
         return null;
     }
@@ -221,7 +219,7 @@ class BouncerController extends AppController
         try {
             $sourceTable = $this->fetchTable($bouncerRecord->source);
             $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
-        } catch (Exception $e) {
+        } catch (Exception) {
             $this->Flash->error('The original record no longer exists.');
 
             return $this->redirect(['action' => 'index']);
@@ -267,7 +265,7 @@ class BouncerController extends AppController
             }
         }
 
-        $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
+        $this->set(['bouncerRecord' => $bouncerRecord, 'currentRecord' => $currentRecord, 'conflict' => $conflict]);
 
         return null;
     }
@@ -426,7 +424,7 @@ class BouncerController extends AppController
                     // Set merged data - this prevents the behavior from auto-merging again
                     $bouncerRecord->setMergedData($conflict['merged']);
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // Source record no longer exists - continue with approval (will fail gracefully)
             }
         }

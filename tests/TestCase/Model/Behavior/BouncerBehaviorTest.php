@@ -399,13 +399,13 @@ class BouncerBehaviorTest extends TestCase
         $bouncerRecord = $this->Articles->getBehavior('Bouncer')->getLastBouncerRecord();
         $this->assertNotNull($bouncerRecord);
 
-        $originalData = json_decode($bouncerRecord->original_data, true);
+        $originalData = json_decode((string) $bouncerRecord->original_data, true);
         $this->assertNotEmpty($originalData, 'original_data should not be empty for edits');
         $this->assertEquals('Original Title', $originalData['title']);
         $this->assertEquals('Original Body', $originalData['body']);
 
         // Check that proposed data has the updates
-        $proposedData = json_decode($bouncerRecord->data, true);
+        $proposedData = json_decode((string) $bouncerRecord->data, true);
         $this->assertEquals('Updated Title', $proposedData['title']);
         $this->assertEquals('Updated Body', $proposedData['body']);
     }
@@ -442,7 +442,7 @@ class BouncerBehaviorTest extends TestCase
         $this->Articles->save($article, ['bouncerUserId' => 1]);
 
         $bouncerRecord = $this->Articles->getBehavior('Bouncer')->getLastBouncerRecord();
-        $originalData = json_decode($bouncerRecord->original_data, true);
+        $originalData = json_decode((string) $bouncerRecord->original_data, true);
 
         // original_data should contain ALL fields from the original article
         // not just the dirty ones
@@ -493,7 +493,7 @@ class BouncerBehaviorTest extends TestCase
         $this->assertTrue($data['_delete']);
 
         // Original data should be stored
-        $originalData = json_decode($bouncerRecord->original_data, true);
+        $originalData = json_decode((string) $bouncerRecord->original_data, true);
         $this->assertEquals('Test Article', $originalData['title']);
         $this->assertEquals('Test body', $originalData['body']);
 
@@ -1351,7 +1351,7 @@ class BouncerBehaviorTest extends TestCase
 
         $bouncerRecord = $this->BouncerRecords->find()->first();
         $this->assertNotNull($bouncerRecord);
-        $this->assertEquals(255, mb_strlen($bouncerRecord->note));
+        $this->assertEquals(255, mb_strlen((string) $bouncerRecord->note));
         $this->assertEquals(str_repeat('a', 255), $bouncerRecord->note);
     }
 

@@ -399,7 +399,7 @@ class BouncerBehavior extends Behavior
 
         if ($existingDraft) {
             // Check if existing draft is a delete (different type)
-            $existingData = json_decode($existingDraft->get('data'), true) ?: [];
+            $existingData = json_decode((string) $existingDraft->get('data'), true) ?: [];
             $isExistingDelete = isset($existingData['_delete']) && $existingData['_delete'] === true;
 
             if ($isExistingDelete) {
@@ -577,7 +577,7 @@ class BouncerBehavior extends Behavior
 
         if ($existingDraft) {
             // Check if existing draft is also a delete (same type)
-            $existingData = json_decode($existingDraft->get('data'), true) ?: [];
+            $existingData = json_decode((string) $existingDraft->get('data'), true) ?: [];
             $isExistingDelete = isset($existingData['_delete']) && $existingData['_delete'] === true;
 
             if ($isExistingDelete) {
@@ -802,11 +802,7 @@ class BouncerBehavior extends Behavior
 
         // Check exempt users (fallback for backward compatibility)
         $userId = $this->getUserId($entity, $options);
-        if ($userId && in_array($userId, $this->getConfig('exemptUsers'), true)) {
-            return true;
-        }
-
-        return false;
+        return $userId && in_array($userId, $this->getConfig('exemptUsers'), true);
     }
 
     /**

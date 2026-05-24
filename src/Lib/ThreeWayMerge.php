@@ -217,9 +217,8 @@ class ThreeWayMerge
         $result .= $firstReplacement;
         $result .= mb_substr($original, $firstEnd, $secondStart - $firstEnd);
         $result .= $secondReplacement;
-        $result .= mb_substr($original, $secondEnd);
 
-        return $result;
+        return $result . mb_substr($original, $secondEnd);
     }
 
     /**
@@ -326,7 +325,7 @@ class ThreeWayMerge
             return '';
         }
 
-        $reversed = array_map(fn ($s) => $this->reverseString($s), $strings);
+        $reversed = array_map($this->reverseString(...), $strings);
         $prefix = $this->commonPrefix($reversed);
 
         return $this->reverseString($prefix);
