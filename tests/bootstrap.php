@@ -8,7 +8,7 @@ use Cake\Datasource\ConnectionManager;
 use Cake\TestSuite\Fixture\SchemaLoader;
 use TestApp\Controller\AppController;
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once 'vendor/autoload.php';
 
 if (!defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
