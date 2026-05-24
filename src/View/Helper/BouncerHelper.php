@@ -186,7 +186,7 @@ class BouncerHelper extends Helper
 
         $diffs = [];
         foreach ($allFields as $field) {
-            if (in_array($field, ['created', 'modified', 'id'], true) || str_starts_with((string) $field, '_')) {
+            if (in_array($field, ['created', 'modified', 'id'], true) || str_starts_with((string)$field, '_')) {
                 continue;
             }
             if (!array_key_exists($field, $proposedData)) {
