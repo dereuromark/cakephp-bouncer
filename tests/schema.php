@@ -19,7 +19,7 @@ foreach ($iterator as $file) {
     $class = 'Bouncer\\Test\\Fixture\\' . $name . 'Fixture';
     try {
         $object = (new ReflectionClass($class))->getProperty('fields');
-    } catch (ReflectionException $e) {
+    } catch (ReflectionException) {
         continue;
     }
 

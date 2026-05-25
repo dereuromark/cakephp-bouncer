@@ -64,7 +64,7 @@ class BouncerRecord extends Entity
             return [];
         }
 
-        return json_decode($this->data, true) ?: [];
+        return json_decode((string)$this->data, true) ?: [];
     }
 
     /**
@@ -78,7 +78,7 @@ class BouncerRecord extends Entity
             return [];
         }
 
-        return json_decode($this->original_data, true) ?: [];
+        return json_decode((string)$this->original_data, true) ?: [];
     }
 
     /**

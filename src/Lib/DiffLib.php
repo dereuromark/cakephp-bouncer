@@ -139,9 +139,9 @@ class DiffLib
                 $newNum++;
                 $html .= '<tr class="unchanged">';
                 $html .= '<td class="line-num">' . $oldNum . '</td>';
-                $html .= '<td>' . htmlspecialchars($row['old']) . '</td>';
+                $html .= '<td>' . htmlspecialchars((string)$row['old']) . '</td>';
                 $html .= '<td class="line-num">' . $newNum . '</td>';
-                $html .= '<td>' . htmlspecialchars($row['new']) . '</td>';
+                $html .= '<td>' . htmlspecialchars((string)$row['new']) . '</td>';
                 $html .= '</tr>';
             } else {
                 $oldNum++;
@@ -154,7 +154,7 @@ class DiffLib
                 } elseif ($row['old'] === '') {
                     $html .= '<td class="old"><del class="empty-line">↵</del></td>';
                 } else {
-                    $html .= '<td class="old">' . ($row['old'] !== null ? '<del>' . htmlspecialchars($row['old']) . '</del>' : '') . '</td>';
+                    $html .= '<td class="old">' . ($row['old'] !== null ? '<del>' . htmlspecialchars((string)$row['old']) . '</del>' : '') . '</td>';
                 }
 
                 $html .= '<td class="line-num new">' . ($row['new'] !== null ? $newNum : '') . '</td>';
@@ -164,7 +164,7 @@ class DiffLib
                 } elseif ($row['new'] === '') {
                     $html .= '<td class="new"><ins class="empty-line">↵</ins></td>';
                 } else {
-                    $html .= '<td class="new">' . ($row['new'] !== null ? '<ins>' . htmlspecialchars($row['new']) . '</ins>' : '') . '</td>';
+                    $html .= '<td class="new">' . ($row['new'] !== null ? '<ins>' . htmlspecialchars((string)$row['new']) . '</ins>' : '') . '</td>';
                 }
 
                 $html .= '</tr>';
@@ -178,9 +178,7 @@ class DiffLib
             }
         }
 
-        $html .= '</tbody></table>';
-
-        return $html;
+        return $html . '</tbody></table>';
     }
 
     /**
@@ -256,7 +254,7 @@ class DiffLib
             }
             $lastShownIndex = $item['origIndex'];
 
-            $line = rtrim($item['line'], "\r\n");
+            $line = rtrim((string)$item['line'], "\r\n");
             $lineNum++;
 
             switch ($item['type']) {
@@ -300,9 +298,7 @@ class DiffLib
             }
         }
 
-        $html .= '</tbody></table>';
-
-        return $html;
+        return $html . '</tbody></table>';
     }
 
     /**
@@ -507,11 +503,7 @@ class DiffLib
 
         for ($i = 1; $i <= $m; $i++) {
             for ($j = 1; $j <= $n; $j++) {
-                if ($a[$i - 1] === $b[$j - 1]) {
-                    $dp[$i][$j] = $dp[$i - 1][$j - 1] + 1;
-                } else {
-                    $dp[$i][$j] = max($dp[$i - 1][$j], $dp[$i][$j - 1]);
-                }
+                $dp[$i][$j] = $a[$i - 1] === $b[$j - 1] ? $dp[$i - 1][$j - 1] + 1 : max($dp[$i - 1][$j], $dp[$i][$j - 1]);
             }
         }
 
@@ -643,8 +635,6 @@ class DiffLib
             }
         }
 
-        $html .= '</div></div>';
-
-        return $html;
+        return $html . '</div></div>';
     }
 }

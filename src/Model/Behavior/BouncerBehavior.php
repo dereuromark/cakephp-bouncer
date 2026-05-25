@@ -376,6 +376,7 @@ class BouncerBehavior extends Behavior
         $source = $this->_table->getRegistryAlias();
 
         // Check if user already has a pending draft
+        /** @var \Bouncer\Model\Entity\BouncerRecord|null $existingDraft */
         $existingDraft = $bouncerTable->findPendingForRecord(
             $source,
             $primaryKey,
@@ -388,6 +389,7 @@ class BouncerBehavior extends Behavior
         $originalModified = null;
         if (!$isNew) {
             // For edits, store the current state as original
+            /** @var \Cake\Datasource\EntityInterface $original */
             $original = $this->_table->get($primaryKey);
             $originalData = $this->serializeEntity($original);
             // Capture modification timestamp for conflict detection
@@ -399,7 +401,7 @@ class BouncerBehavior extends Behavior
 
         if ($existingDraft) {
             // Check if existing draft is a delete (different type)
-            $existingData = json_decode($existingDraft->get('data'), true) ?: [];
+            $existingData = json_decode((string)$existingDraft->get('data'), true) ?: [];
             $isExistingDelete = isset($existingData['_delete']) && $existingData['_delete'] === true;
 
             if ($isExistingDelete) {
@@ -561,6 +563,7 @@ class BouncerBehavior extends Behavior
         $source = $this->_table->getRegistryAlias();
 
         // Check if user already has a pending draft for this record
+        /** @var \Bouncer\Model\Entity\BouncerRecord|null $existingDraft */
         $existingDraft = $bouncerTable->findPendingForRecord(
             $source,
             $primaryKey,
@@ -577,7 +580,7 @@ class BouncerBehavior extends Behavior
 
         if ($existingDraft) {
             // Check if existing draft is also a delete (same type)
-            $existingData = json_decode($existingDraft->get('data'), true) ?: [];
+            $existingData = json_decode((string)$existingDraft->get('data'), true) ?: [];
             $isExistingDelete = isset($existingData['_delete']) && $existingData['_delete'] === true;
 
             if ($isExistingDelete) {
@@ -802,11 +805,8 @@ class BouncerBehavior extends Behavior
 
         // Check exempt users (fallback for backward compatibility)
         $userId = $this->getUserId($entity, $options);
-        if ($userId && in_array($userId, $this->getConfig('exemptUsers'), true)) {
-            return true;
-        }
 
-        return false;
+        return $userId && in_array($userId, $this->getConfig('exemptUsers'), true);
     }
 
     /**
@@ -862,6 +862,7 @@ class BouncerBehavior extends Behavior
         /** @var \Bouncer\Model\Table\BouncerRecordsTable $bouncerTable */
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
+        /** @var \Bouncer\Model\Entity\BouncerRecord|null $existingDraft */
         $existingDraft = $bouncerTable->findPendingForRecord(
             $this->_table->getRegistryAlias(),
             $primaryKey,
@@ -890,11 +891,14 @@ class BouncerBehavior extends Behavior
         /** @var \Bouncer\Model\Table\BouncerRecordsTable $bouncerTable */
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
-        return $bouncerTable->findPendingForRecord(
+        /** @var \Bouncer\Model\Entity\BouncerRecord|null $draft */
+        $draft = $bouncerTable->findPendingForRecord(
             $this->_table->getRegistryAlias(),
             $primaryKey,
             $userId,
         )->first();
+
+        return $draft;
     }
 
     /**
@@ -1003,6 +1007,7 @@ class BouncerBehavior extends Behavior
             && $bouncerRecord->isEditProposal()
             && $bouncerRecord->canDetectStaleness()
         ) {
+            /** @var \Cake\Datasource\EntityInterface $currentRecord */
             $currentRecord = $this->_table->get($bouncerRecord->primary_key);
             $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
 
@@ -1031,6 +1036,7 @@ class BouncerBehavior extends Behavior
         // Check if this is a delete operation
         if (isset($data['_delete']) && $data['_delete']) {
             // This is a delete operation
+            /** @var \Cake\Datasource\EntityInterface $entity */
             $entity = $this->_table->get($bouncerRecord->primary_key);
             $options['bypassBouncer'] = true;
 
@@ -1042,6 +1048,7 @@ class BouncerBehavior extends Behavior
             $entity = $this->_table->newEntity($data);
         } else {
             // Load and patch existing entity
+            /** @var \Cake\Datasource\EntityInterface $entity */
             $entity = $this->_table->get($bouncerRecord->primary_key);
             $entity = $this->_table->patchEntity($entity, $data);
         }

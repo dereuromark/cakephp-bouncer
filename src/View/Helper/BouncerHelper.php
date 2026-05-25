@@ -186,7 +186,7 @@ class BouncerHelper extends Helper
 
         $diffs = [];
         foreach ($allFields as $field) {
-            if (in_array($field, ['created', 'modified', 'id'], true) || str_starts_with($field, '_')) {
+            if (in_array($field, ['created', 'modified', 'id'], true) || str_starts_with((string)$field, '_')) {
                 continue;
             }
             if (!array_key_exists($field, $proposedData)) {
@@ -299,9 +299,8 @@ class BouncerHelper extends Helper
         $output .= '<span class="text-muted">' . __d('bouncer', 'After:') . '</span>';
         $output .= '<div class="p-2 bg-warning border rounded"><ins><strong>' . h($proposedStr) . '</strong></ins></div>';
         $output .= '</div>';
-        $output .= '</div>';
 
-        return $output;
+        return $output . '</div>';
     }
 
     /**
@@ -330,9 +329,7 @@ class BouncerHelper extends Helper
             $output .= '</tr>';
         }
 
-        $output .= '</tbody></table>';
-
-        return $output;
+        return $output . '</tbody></table>';
     }
 
     /**
@@ -348,9 +345,8 @@ class BouncerHelper extends Helper
         $output .= '<summary><strong>' . __d('bouncer', 'Raw JSON Data') . '</strong></summary>';
         $output .= '<pre class="bg-light p-3 mt-2"><code>';
         $output .= h(json_encode($bouncerRecord->getData(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        $output .= '</code></pre></details>';
 
-        return $output;
+        return $output . '</code></pre></details>';
     }
 
     /**

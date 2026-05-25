@@ -184,7 +184,7 @@ class BouncerController extends AppController
                         }
                     }
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 $this->Flash->warning('The original record no longer exists.');
             }
         }
@@ -221,7 +221,7 @@ class BouncerController extends AppController
         try {
             $sourceTable = $this->fetchTable($bouncerRecord->source);
             $currentRecord = $sourceTable->get($bouncerRecord->primary_key);
-        } catch (Exception $e) {
+        } catch (Exception) {
             $this->Flash->error('The original record no longer exists.');
 
             return $this->redirect(['action' => 'index']);
@@ -426,7 +426,7 @@ class BouncerController extends AppController
                     // Set merged data - this prevents the behavior from auto-merging again
                     $bouncerRecord->setMergedData($conflict['merged']);
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // Source record no longer exists - continue with approval (will fail gracefully)
             }
         }
