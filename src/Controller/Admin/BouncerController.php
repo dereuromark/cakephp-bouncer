@@ -139,7 +139,7 @@ class BouncerController extends AppController
             ->extract('source')
             ->toArray();
 
-        $this->set(['bouncerRecords' => $bouncerRecords, 'sources' => $sources, 'status' => $status, 'source' => $source, 'userId' => $userId]);
+        $this->set(compact('bouncerRecords', 'sources', 'status', 'source', 'userId'));
 
         return null;
     }
@@ -187,7 +187,7 @@ class BouncerController extends AppController
             }
         }
 
-        $this->set(['bouncerRecord' => $bouncerRecord, 'currentRecord' => $currentRecord, 'conflict' => $conflict]);
+        $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
 
         return null;
     }
@@ -265,7 +265,7 @@ class BouncerController extends AppController
             }
         }
 
-        $this->set(['bouncerRecord' => $bouncerRecord, 'currentRecord' => $currentRecord, 'conflict' => $conflict]);
+        $this->set(compact('bouncerRecord', 'currentRecord', 'conflict'));
 
         return null;
     }
