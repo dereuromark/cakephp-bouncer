@@ -132,7 +132,7 @@ class BouncerRecordsTable extends Table
      *
      * @return \Cake\ORM\Query\SelectQuery
      */
-    public function findPendingForRecord(string $source, int|string|null $primaryKey, int|string|null $userId = null)
+    public function findPendingForRecord(string $source, string|int|null $primaryKey, string|int|null $userId = null)
     {
         $query = $this->find()
             ->where([
@@ -178,7 +178,7 @@ class BouncerRecordsTable extends Table
      *
      * @return int Number of records superseded
      */
-    public function supersedeOthers(string $source, int|string|null $primaryKey, int $excludeId): int
+    public function supersedeOthers(string $source, string|int|null $primaryKey, int $excludeId): int
     {
         return $this->updateAll(
             ['status' => 'superseded'],

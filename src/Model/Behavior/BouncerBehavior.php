@@ -703,7 +703,7 @@ class BouncerBehavior extends Behavior
      *
      * @return string|int|null
      */
-    protected function getUserId(EntityInterface $entity, ArrayObject $options): int|string|null
+    protected function getUserId(EntityInterface $entity, ArrayObject $options): string|int|null
     {
         $userField = $this->getConfig('userField');
 
@@ -850,7 +850,7 @@ class BouncerBehavior extends Behavior
      *
      * @return void
      */
-    protected function removeRevertedDraft(EntityInterface $entity, int|string $userId): void
+    protected function removeRevertedDraft(EntityInterface $entity, string|int $userId): void
     {
         $primaryKeyField = $this->_table->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
@@ -886,7 +886,7 @@ class BouncerBehavior extends Behavior
      *
      * @return \Bouncer\Model\Entity\BouncerRecord|null
      */
-    public function loadDraft(int|string $primaryKey, int|string $userId): ?BouncerRecord
+    public function loadDraft(string|int $primaryKey, string|int $userId): ?BouncerRecord
     {
         /** @var \Bouncer\Model\Table\BouncerRecordsTable $bouncerTable */
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
@@ -911,7 +911,7 @@ class BouncerBehavior extends Behavior
      *
      * @return bool
      */
-    public function hasPendingDraft(int|string|null $primaryKey, int|string $userId): bool
+    public function hasPendingDraft(string|int|null $primaryKey, string|int $userId): bool
     {
         if ($primaryKey === null) {
             return false;
@@ -943,7 +943,7 @@ class BouncerBehavior extends Behavior
      *
      * @return \Bouncer\Model\Entity\BouncerRecord|null The draft entity if found and applied, null otherwise
      */
-    public function withDraft(EntityInterface $entity, int|string $userId): ?BouncerRecord
+    public function withDraft(EntityInterface $entity, string|int $userId): ?BouncerRecord
     {
         $primaryKeyField = $this->_table->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);

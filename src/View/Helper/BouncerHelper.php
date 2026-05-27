@@ -622,9 +622,9 @@ JS;
      * @return array|string|null URL or null if no link
      */
     protected function buildUrl(
-        callable|string|array $linkConfig,
+        callable|array|string $linkConfig,
         array $replacements,
-    ): string|array|null {
+    ): array|string|null {
         if (is_callable($linkConfig)) {
             return $linkConfig(...array_values($replacements));
         }
@@ -655,12 +655,12 @@ JS;
      * @return array|string|null URL or null if no link
      */
     protected function buildRecordUrl(
-        callable|string|array $linkConfig,
+        callable|array|string $linkConfig,
         string $source,
         ?string $plugin,
         string $tableName,
         string $primaryKey,
-    ): string|array|null {
+    ): array|string|null {
         if (is_callable($linkConfig)) {
             return $linkConfig($source, $primaryKey, $plugin, $tableName);
         }
