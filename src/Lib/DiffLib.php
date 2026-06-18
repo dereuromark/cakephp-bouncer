@@ -3,7 +3,7 @@
 namespace Bouncer\Lib;
 
 use SebastianBergmann\Diff\Differ;
-use SebastianBergmann\Diff\Output\UnifiedDiffOutputBuilder;
+use SebastianBergmann\Diff\Output\DiffOnlyOutputBuilder;
 
 /**
  * A library for generating HTML diffs between two strings.
@@ -536,7 +536,7 @@ class DiffLib
      */
     protected function getDiffArray(string $old, string $new): array
     {
-        $builder = new UnifiedDiffOutputBuilder();
+        $builder = new DiffOnlyOutputBuilder();
         $differ = new Differ($builder);
 
         return $differ->diffToArray($old, $new);
