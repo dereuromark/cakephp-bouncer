@@ -51,6 +51,7 @@ class BouncerBehavior extends Behavior
         'bypassCallback' => null,
         'validateOnDraft' => true,
         'autoSupersede' => true,
+        'cleanupOnDelete' => true,
     ];
 
     /**
@@ -347,6 +348,47 @@ class BouncerBehavior extends Behavior
         // Prevent actual delete
         $event->stopPropagation();
         $event->setResult(false);
+    }
+
+    /**
+     * Clean up bouncer records for a source row once it is actually deleted.
+     *
+     * Bouncer records reference their source only by `source` + `primary_key`,
+     * with no database-level foreign key or cascade, so a deleted source row
+     * would otherwise leave orphaned proposals and history in the review queue
+     * pointing at a record that no longer exists (and, for the source app, links
+     * that 404).
+     *
+     * Only fires on a real delete: when `delete` requires approval,
+     * `beforeDelete()` stops propagation and creates a delete proposal instead,
+     * so this never runs in that path and cannot wipe the just-created proposal.
+     * Disable via the `cleanupOnDelete` config when records must outlive their
+     * source (e.g. an audit trail).
+     *
+     * @param \Cake\Event\EventInterface<\Cake\ORM\Table> $event
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param \ArrayObject<string, mixed> $options
+     *
+     * @return void
+     */
+    public function afterDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    {
+        if (!$this->getConfig('cleanupOnDelete')) {
+            return;
+        }
+
+        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
+        if ($primaryKey === null) {
+            return;
+        }
+
+        /** @var \Bouncer\Model\Table\BouncerRecordsTable $bouncerTable */
+        $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
+        $bouncerTable->deleteAll([
+            'source' => $this->_table->getRegistryAlias(),
+            'primary_key' => (string)$primaryKey,
+        ]);
     }
 
     /**

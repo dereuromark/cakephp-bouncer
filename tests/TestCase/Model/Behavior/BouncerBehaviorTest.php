@@ -1868,4 +1868,57 @@ class BouncerBehaviorTest extends TestCase
             . 'would mean force-committing on top of a host transaction — the dangerous direction.',
         );
     }
+
+    /**
+     * Deleting a source row removes the bouncer records tied to it.
+     */
+    public function testAfterDeleteCleansUpBouncerRecords(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        $article = $this->Articles->newEntity(['title' => 'X', 'body' => 'Y', 'user_id' => 1]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        $record = $this->BouncerRecords->newEntity([
+            'source' => $this->Articles->getRegistryAlias(),
+            'primary_key' => (string)$articleId,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Changed']),
+        ]);
+        $this->BouncerRecords->saveOrFail($record);
+        $this->assertSame(1, $this->BouncerRecords->find()->count());
+
+        $article = $this->Articles->get($articleId);
+        $this->assertNotFalse($this->Articles->delete($article, ['bypassBouncer' => true]));
+
+        $this->assertSame(0, $this->BouncerRecords->find()->count());
+    }
+
+    /**
+     * The cleanup can be disabled so records outlive their source row.
+     */
+    public function testAfterDeleteKeepsRecordsWhenCleanupDisabled(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', ['cleanupOnDelete' => false]);
+
+        $article = $this->Articles->newEntity(['title' => 'X', 'body' => 'Y', 'user_id' => 1]);
+        $this->Articles->save($article, ['bypassBouncer' => true]);
+        $articleId = $article->id;
+
+        $record = $this->BouncerRecords->newEntity([
+            'source' => $this->Articles->getRegistryAlias(),
+            'primary_key' => (string)$articleId,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Changed']),
+        ]);
+        $this->BouncerRecords->saveOrFail($record);
+
+        $article = $this->Articles->get($articleId);
+        $this->assertNotFalse($this->Articles->delete($article, ['bypassBouncer' => true]));
+
+        $this->assertSame(1, $this->BouncerRecords->find()->count());
+    }
 }

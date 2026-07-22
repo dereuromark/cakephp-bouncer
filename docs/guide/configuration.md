@@ -30,6 +30,10 @@ $this->addBehavior('Bouncer.Bouncer', [
     // When the same user submits a new proposal for the same record, mark
     // their previous pending drafts as 'superseded' (default: true).
     'autoSupersede' => true,
+
+    // When a source row is actually deleted, remove the bouncer records tied
+    // to it so the queue never lists proposals for a gone record (default: true).
+    'cleanupOnDelete' => true,
 ]);
 ```
 
@@ -62,7 +66,16 @@ Switch to `false` to keep every proposal in the queue.
 
 > Manual variant: `$bouncerTable->supersedeOthers($source, $primaryKey, $keepId)`.
 
-## App config (`Bouncer.*`)
+### `cleanupOnDelete`
+
+Bouncer records reference their source only by `source` + `primary_key`, with
+no database-level foreign key or cascade. When a source row is actually deleted,
+`cleanupOnDelete` (default `true`) removes every bouncer record tied to it, so
+the review queue never lists a proposal (or history entry) for a record that no
+longer exists. Only fires on a real delete: when `delete` is in `requireApproval`
+the delete is intercepted and turned into a proposal instead, so the cleanup does
+not run in that path. Set to `false` when records must outlive their source row
+(e.g. keeping an audit trail of deleted content).
 
 These live in `config/app.php` (or `app_local.php`). Defaults work — only
 set what you need. See `config/app.example.php` for the full reference
