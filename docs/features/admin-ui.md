@@ -46,7 +46,7 @@ permission decision in the Closure.
 ### Standalone setup
 
 Set `Bouncer.standalone` to `true` to skip the host `AppController::initialize()`
-and `beforeFilter()`. The plugin loads Flash and its own helpers and layout.
+and controller lifecycle callbacks. The plugin loads Flash and its own helpers and layout.
 In this mode, `Bouncer.accessCheck` is required; an absent check returns 403.
 
 ```php
