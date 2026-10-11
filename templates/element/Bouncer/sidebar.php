@@ -70,7 +70,7 @@ $isActive = function (string $c, ?array $actions = null) use ($controller, $acti
                 ['plugin' => $plugin, 'prefix' => $prefix, 'controller' => 'Bouncer', 'action' => 'reset'],
                 [
                     'class' => 'nav-link text-danger',
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                     'confirm' => __d('bouncer', 'This wipes ALL bouncer records. Continue?'),
                     'block' => true,
                 ],

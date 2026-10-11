@@ -315,6 +315,8 @@ class BouncerControllerTest extends TestCase
         $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
 
         $this->assertResponseOk();
+        $this->assertResponseContains('class="fas fa-eraser me-2"');
+        $this->assertResponseNotContains('&lt;i class=');
     }
 
     /**
