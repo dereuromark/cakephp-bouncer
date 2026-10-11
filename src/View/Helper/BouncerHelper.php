@@ -35,7 +35,7 @@ class BouncerHelper extends Helper
      *
      * @var array<string, mixed>
      */
-    protected array $_defaultConfig = [
+    protected array $defaultConfig = [
         'differOptions' => [
             'context' => 2,
             'ignoreCase' => false,
@@ -141,7 +141,7 @@ class BouncerHelper extends Helper
 
     /**
      * @var int
-     * @deprecated Use $_defaultConfig['differOptions']['context'] instead
+     * @deprecated Use $defaultConfig['differOptions']['context'] instead
      */
     protected int $contextLines = 2;
 

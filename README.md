@@ -4,12 +4,12 @@
 [![Coverage Status](https://img.shields.io/codecov/c/github/dereuromark/cakephp-bouncer/master.svg?style=flat-square)](https://codecov.io/github/dereuromark/cakephp-bouncer)
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen.svg?style=flat)](https://phpstan.org/)
 [![Latest Stable Version](https://poser.pugx.org/dereuromark/cakephp-bouncer/v/stable.svg)](https://packagist.org/packages/dereuromark/cakephp-bouncer)
-[![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%208.2-8892BF.svg)](https://php.net/)
+[![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%208.5-8892BF.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Total Downloads](https://poser.pugx.org/dereuromark/cakephp-bouncer/d/total.svg)](https://packagist.org/packages/dereuromark/cakephp-bouncer)
 [![Coding Standards](https://img.shields.io/badge/cs-PhpCollective-purple.svg?style=flat-square)](https://github.com/php-collective/code-sniffer)
 
-This branch is for **CakePHP 5**. See [version map](https://github.com/dereuromark/cakephp-bouncer/wiki#cakephp-version-map) for details.
+This branch is for **CakePHP 6**. See [version map](https://github.com/dereuromark/cakephp-bouncer/wiki#cakephp-version-map) for details.
 
 Approval workflow for CakePHP: users propose changes, admins/moderators review and approve or reject before the changes hit the live database. Built for content-management systems, user-generated content moderation, data-entry quality control, and multi-stage editorial workflows.
 
@@ -26,6 +26,8 @@ Approval workflow for CakePHP: users propose changes, admins/moderators review a
 > **Reverts are out of scope.** Bouncer is the gate *before* changes ship. To roll a record back *after* it shipped, use AuditStash's [Revert / Restore feature](https://dereuromark.github.io/cakephp-audit-stash/features/revert).
 
 ## Documentation
+
+This development branch targets CakePHP 6 and PHP 8.5. Read [this branch's documentation](https://github.com/dereuromark/cakephp-bouncer/tree/cake6/docs). The website below documents CakePHP 5.
 
 Full docs: **<https://dereuromark.github.io/cakephp-bouncer/>**
 

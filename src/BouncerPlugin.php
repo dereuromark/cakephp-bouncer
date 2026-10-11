@@ -44,7 +44,7 @@ class BouncerPlugin extends BasePlugin
     public function routes(RouteBuilder $routes): void
     {
         $routes->prefix('Admin', function (RouteBuilder $routes): void {
-            $routes->plugin('Bouncer', ['path' => '/bouncer'], function (RouteBuilder $routes): void {
+            $routes->plugin('Bouncer', function (RouteBuilder $routes): void {
                 $routes->setRouteClass(DashedRoute::class);
 
                 $routes->connect('/', ['controller' => 'Bouncer', 'action' => 'index']);

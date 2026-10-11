@@ -35,7 +35,7 @@ class BouncerRecord extends Entity
      *
      * @var array<string, bool>
      */
-    protected array $_accessible = [
+    protected array $patchable = [
         'source' => true,
         'primary_key' => true,
         'user_id' => true,
