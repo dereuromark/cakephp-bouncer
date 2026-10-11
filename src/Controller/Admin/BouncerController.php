@@ -62,6 +62,7 @@ class BouncerController extends AppController
                 $event->setResult($result);
             }
             if ($event->getResult() instanceof ResponseInterface) {
+                $this->skipAdminAuthorizationCheck();
                 $event->stopPropagation();
 
                 return;
@@ -127,14 +128,7 @@ class BouncerController extends AppController
 
         // Coexist with cakephp/authorization: the gate IS the authorization
         // decision, so silence the policy check.
-        if ($this->components()->has('Authorization') && method_exists($this->components()->get('Authorization'), 'skipAuthorization')) {
-            $this->components()->get('Authorization')->skipAuthorization();
-        } else {
-            $authorization = $this->request->getAttribute('authorization');
-            if (is_object($authorization) && is_callable([$authorization, 'skipAuthorization'])) {
-                $authorization->skipAuthorization();
-            }
-        }
+        $this->skipAdminAuthorizationCheck();
 
         try {
             $allowed = $check($this->request) === true;
@@ -660,5 +654,17 @@ class BouncerController extends AppController
         $this->Flash->success(__d('bouncer', 'All bouncer records have been deleted.'));
 
         return $this->redirect(['action' => 'index']);
+    }
+
+    protected function skipAdminAuthorizationCheck(): void
+    {
+        if ($this->components()->has('Authorization') && method_exists($this->components()->get('Authorization'), 'skipAuthorization')) {
+            $this->components()->get('Authorization')->skipAuthorization();
+        } else {
+            $authorization = $this->request->getAttribute('authorization');
+            if (is_object($authorization) && is_callable([$authorization, 'skipAuthorization'])) {
+                $authorization->skipAuthorization();
+            }
+        }
     }
 }
