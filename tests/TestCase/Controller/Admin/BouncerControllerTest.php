@@ -78,6 +78,22 @@ class BouncerControllerTest extends TestCase
         parent::tearDown();
     }
 
+    public function testHostBeforeFilterRedirectStopsAction(): void
+    {
+        Configure::write('Bouncer.standalone', false);
+        Configure::write('Test.hostRedirect', true);
+        Configure::write('Bouncer.accessCheck', function (): bool {
+            $this->fail('The plugin gate must not run after a host redirect.');
+        });
+
+        try {
+            $this->get(['prefix' => 'Admin', 'plugin' => 'Bouncer', 'controller' => 'Bouncer', 'action' => 'index']);
+            $this->assertRedirect('/login');
+        } finally {
+            Configure::delete('Test.hostRedirect');
+        }
+    }
+
     public function testStandaloneMarksRequestAuthorizationChecked(): void
     {
         $service = new class {
@@ -123,6 +139,8 @@ class BouncerControllerTest extends TestCase
         $this->assertTrue(Configure::read('Test.hostBeforeFilter'));
         $this->assertTrue(Configure::read('Test.hostBeforeRender'));
         $this->assertTrue(Configure::read('Test.hostAfterFilter'));
+        $this->_controller->redirect('/');
+        $this->assertTrue(Configure::read('Test.hostBeforeRedirect'));
     }
 
     public function testStandaloneSkipsHostCallbacks(): void
@@ -142,6 +160,8 @@ class BouncerControllerTest extends TestCase
         $this->assertNull(Configure::read('Test.hostBeforeFilter'));
         $this->assertNull(Configure::read('Test.hostBeforeRender'));
         $this->assertNull(Configure::read('Test.hostAfterFilter'));
+        $this->_controller->redirect('/');
+        $this->assertNull(Configure::read('Test.hostBeforeRedirect'));
     }
 
     public function testStandaloneWithoutGateRejects(): void

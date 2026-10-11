@@ -120,6 +120,12 @@ through the `bouncer` domain).
 
 When unset (the default), the button is hidden — the header looks unchanged.
 
+### `Bouncer.standalone`
+
+Defaults to false. Set it to true to skip host controller initialization and
+lifecycle callbacks, while retaining application middleware and the plugin's
+required access check. See [Standalone setup](../features/admin-ui.md#standalone-setup).
+
 ### `Bouncer.accessCheck`
 
 Optional access gate for the admin UI in the default mode; required when

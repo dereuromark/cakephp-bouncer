@@ -19,7 +19,7 @@ return [
          */
         'adminLayout' => null,
 
-        // Skip host initialize() and beforeFilter(); requires accessCheck below.
+        // Skip host initialization and lifecycle callbacks; requires accessCheck below.
         'standalone' => false,
 
         /**

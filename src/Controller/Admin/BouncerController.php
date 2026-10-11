@@ -14,6 +14,7 @@ use Cake\Log\Log;
 use Closure;
 use DateTime;
 use Exception;
+use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Throwable;
 
@@ -56,7 +57,12 @@ class BouncerController extends AppController
         if (Configure::read('Bouncer.standalone')) {
             Controller::beforeFilter($event);
         } else {
-            parent::beforeFilter($event);
+            $result = parent::beforeFilter($event);
+            if ($result instanceof ResponseInterface) {
+                $event->setResult($result);
+
+                return;
+            }
         }
 
         $this->enforceAccessCheck();

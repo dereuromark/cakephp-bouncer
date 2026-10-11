@@ -54,7 +54,7 @@ Configure::write('Bouncer.standalone', true);
 ```
 
 Configure the access Closure above before enabling this mode. Application
-middleware and other inherited controller callbacks still run. Standalone mode
+middleware still runs; host controller lifecycle callbacks are skipped. Standalone mode
 does not remove middleware authentication or authorization requirements.
 
 ## Admin layout
