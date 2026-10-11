@@ -27,8 +27,8 @@ $this->addBehavior('Bouncer.Bouncer', [
     // Set false to defer validation until approval.
     'validateOnDraft' => true,
 
-    // When the same user submits a new proposal for the same record, mark
-    // their previous pending drafts as 'superseded' (default: true).
+    // When a new proposal is stored, mark other pending proposals
+    // for its source and primary key as 'superseded' (default: true).
     'autoSupersede' => true,
 
     // When a source row is actually deleted, remove the bouncer records tied
@@ -59,10 +59,12 @@ don't want users blocked on incomplete data.
 
 ### `autoSupersede`
 
-When a user has multiple pending drafts for the same source/primary key,
-the queue gets noisy. With `autoSupersede` (default), each new proposal
-marks the user's previous pending drafts as `superseded` automatically.
-Switch to `false` to keep every proposal in the queue.
+With `autoSupersede` (default), each new proposal
+marks other pending drafts for that source and primary key as `superseded`,
+including drafts from other users. New-record proposals share a null primary
+key, so a new add proposal also supersedes other pending adds for that source.
+Set `autoSupersede` to false when proposals from different users must remain
+pending together. Re-editing an existing same-user draft still updates that row.
 
 > Manual variant: `$bouncerTable->supersedeOthers($source, $primaryKey, $keepId)`.
 
@@ -120,15 +122,16 @@ When unset (the default), the button is hidden — the header looks unchanged.
 
 ### `Bouncer.standalone`
 
-When `true`, the admin controller does not extend host `AppController`'s
-auth/loadComponent behavior. Useful for projects that want the bouncer
-admin to operate under a separate auth stack (e.g. a static admin token
-or a different identity provider).
+Defaults to false. Set it to true to skip host controller initialization and
+lifecycle callbacks, while retaining application middleware and the plugin's
+required access check. See [Standalone setup](../features/admin-ui.md#standalone-setup).
 
 ### `Bouncer.accessCheck`
 
-Defense-in-depth gate for the admin UI. Optional — the host app's
-`AppController` auth is already the first line of defense.
+Optional access gate for the admin UI in the default mode; required when
+`Bouncer.standalone` is true. If unset, the plugin does not add an
+access check; configure the host application's authentication and authorization
+for these routes. The Admin prefix alone does not protect them.
 
 ```php
 use Cake\Core\Configure;

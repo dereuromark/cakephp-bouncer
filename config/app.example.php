@@ -19,6 +19,9 @@ return [
          */
         'adminLayout' => null,
 
+        // Skip host initialization and lifecycle callbacks; requires accessCheck below.
+        'standalone' => false,
+
         /**
          * Back-to-App link in the admin header
          *
@@ -41,15 +44,6 @@ return [
          * "Back to App" (translated through the `bouncer` domain).
          */
         // 'adminBackLabel' => 'Back to admin',
-
-        /**
-         * Standalone Mode
-         *
-         * When enabled, the admin interface operates independently without
-         * inheriting from AppController's authentication/authorization.
-         * Useful for quick setup or when using separate admin authentication.
-         */
-        'standalone' => false,
 
         /**
          * Admin access gate (optional, defense-in-depth).

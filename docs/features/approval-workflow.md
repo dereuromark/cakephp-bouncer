@@ -44,11 +44,10 @@ proposal was reviewed, Bouncer doesn't stack drafts:
    draft for `(source, primary_key, user_id)` and **updates** it rather
    than inserting a new one.
 
-Different users editing the same record *do* get separate drafts —
-otherwise concurrent contributors would silently overwrite each other.
-With `autoSupersede => true` (default), submitting a *new* proposal for
-the same record marks the user's previous pending drafts as `superseded`
-so the queue stays focused on the latest version.
+Draft lookup includes the user ID, but auto-supersede applies to all pending
+proposals for the source and primary key. With its default value of true, a new
+proposal can supersede another user's draft. Set it to false to retain concurrent
+proposals from different users.
 
 ## Database schema
 
@@ -56,15 +55,15 @@ The `bouncer_records` table stores one row per proposal:
 
 | Column | Type | Purpose |
 |---|---|---|
-| `id` | integer / uuid | primary key |
+| `id` | integer | proposal primary key |
 | `source` | string | model name (`Articles`, `Community.Stories` for plugins) |
 | `primary_key` | integer / uuid / null | source-record id, NULL for new-record proposals |
-| `user_id` | integer / uuid | who proposed |
+| `user_id` | integer by default | who proposed |
 | `user_display` | string / null | optional display name for the proposer |
-| `reviewer_id` | integer / uuid / null | who approved or rejected |
+| `reviewer_id` | integer / null by default | who approved or rejected |
 | `reviewer_display` | string / null | optional display name for the reviewer |
-| `status` | enum | `pending` / `approved` / `rejected` / `superseded` |
-| `data` | JSON | proposed changes (full entity payload for new records, dirty fields for edits) |
+| `status` | string | `pending` / `approved` / `rejected` / `superseded` |
+| `data` | JSON | JSON-encoded text: new-record fields, dirty edit fields, or a delete marker |
 | `original_data` | JSON / null | snapshot of the source record at draft time — drives diffs and 3-way merge |
 | `original_modified` | datetime / null | source record's `modified` timestamp at draft time — drives staleness detection |
 | `note` | string / null | the **proposer's** note explaining what they changed and why |
@@ -94,8 +93,8 @@ The `bouncer_records` table stores one row per proposal:
     └────────────┘ └──────────┘ └────────────┘
 ```
 
-Statuses are terminal — once a row leaves `pending`, the queue stops
-showing it (unless the admin filters for that status).
+Rows that leave pending are hidden from the default queue, but can be listed
+using status filters. The admin reopen action returns rejected rows to pending.
 
 ## Entity helpers on `BouncerRecord`
 
@@ -125,10 +124,10 @@ the same branching in your own templates.
 
 | Method | Returns |
 |---|---|
-| `getData()` | proposed payload — the merged data if `setMergedData()` was called, otherwise the original proposal |
+| `getData()` | decoded proposed payload |
 | `getOriginalData()` | snapshot of the source record at draft time |
 | `hasMergedData()` | `true` if a custom merge result has been set |
-| `getMergedData()` | the explicitly-set merged payload (empty array if none) |
+| `getMergedData()` | the explicitly-set merged payload, or the proposed payload if none |
 
 ### Staleness and merging
 
@@ -157,6 +156,8 @@ if ($bouncerRecord->isEditProposal() && $bouncerRecord->canDetectStaleness()) {
 
 ## UUID support
 
-Bundled migrations use integer columns. UUID-keyed apps need to copy and
-adjust them — see
+The source record key uses `Polymorphic.type` at migration time. Proposal IDs
+remain integers, and user/reviewer IDs default to integer columns. Configure
+source key types before installation and use application migrations for existing
+schema changes. See
 [Configuration → Polymorphic Column Type](../guide/configuration#polymorphic-column-type).

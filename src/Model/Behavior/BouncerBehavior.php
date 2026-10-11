@@ -66,7 +66,7 @@ class BouncerBehavior extends Behavior
      *
      * @var \Bouncer\Model\Entity\BouncerRecord|null
      */
-    protected $lastBouncerRecord;
+    protected ?BouncerRecord $lastBouncerRecord = null;
 
     /**
      * Tracks if last bouncer operation failed (vs. intentionally skipped).
@@ -95,17 +95,6 @@ class BouncerBehavior extends Behavior
     }
 
     /**
-     * Persist the bouncer record by committing the current transaction and reopening a new one,
-     * so the bouncer record survives the parent save's rollback.
-     *
-     * If the host application has wrapped the save in its own outer transaction (i.e. the
-     * connection's transaction nesting level is greater than 1), force-committing here would
-     * silently close the host's transaction and corrupt its data integrity guarantees. In that
-     * case we skip the force-commit and log a warning so consumers can detect the unsupported
-     * scenario. The bouncer record will still be persisted as part of the host transaction; if
-     * the host then rolls back, the bouncer record is rolled back with it (acceptable trade-off
-     * vs. corrupting the host's data).
-     *
      * Normalize a value for the revert / unchanged comparison.
      *
      * JSON-encode so the comparison preserves type distinctions PHP's loose
@@ -124,6 +113,9 @@ class BouncerBehavior extends Behavior
     }
 
     /**
+     * Commit the proposal before the parent save rolls back, then reopen its transaction.
+     * An outer host transaction prevents this commit; the proposal then shares its outcome.
+     *
      * @param \Cake\Database\Connection $connection Connection
      *
      * @return void
@@ -866,7 +858,7 @@ class BouncerBehavior extends Behavior
      *
      * @return \Bouncer\Model\Entity\BouncerRecord|null
      */
-    public function getLastBouncerRecord()
+    public function getLastBouncerRecord(): ?BouncerRecord
     {
         return $this->lastBouncerRecord;
     }

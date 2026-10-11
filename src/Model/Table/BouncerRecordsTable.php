@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bouncer\Model\Table;
 
+use Cake\ORM\Query\SelectQuery;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
@@ -132,7 +133,7 @@ class BouncerRecordsTable extends Table
      *
      * @return \Cake\ORM\Query\SelectQuery
      */
-    public function findPendingForRecord(string $source, string|int|null $primaryKey, string|int|null $userId = null)
+    public function findPendingForRecord(string $source, string|int|null $primaryKey, string|int|null $userId = null): SelectQuery
     {
         $query = $this->find()
             ->where([
@@ -160,7 +161,7 @@ class BouncerRecordsTable extends Table
      *
      * @return \Cake\ORM\Query\SelectQuery
      */
-    public function findPending()
+    public function findPending(): SelectQuery
     {
         return $this->find()
             ->where(['status' => 'pending'])

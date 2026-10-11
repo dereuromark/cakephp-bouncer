@@ -10,7 +10,10 @@ hero:
     alt: cakephp-bouncer
   actions:
     - theme: brand
-      text: Get Started
+      text: Installation
+      link: /guide/installation
+    - theme: alt
+      text: Getting started
       link: /guide/
     - theme: alt
       text: Features
@@ -31,7 +34,7 @@ features:
     details: Side-by-side and inline diffs (word-level when jfcherng/php-diff is installed), status badges, filters, and one-click approve/reject with reasons.
   - icon: 🔀
     title: 3-Way Merge
-    details: Stale proposals merge automatically when the source record changed independently. Non-overlapping edits combine; conflicts surface for manual resolution.
+    details: Stale proposals merge automatically when the source record changed independently. Non-overlapping edits combine; conflicts can keep the proposed value. Review the merge rules before approving.
   - icon: 📝
     title: Draft-Safe Re-Edits
     details: Users editing the same record see and update their own pending draft instead of stacking duplicates. Auto-supersede keeps the queue clean.

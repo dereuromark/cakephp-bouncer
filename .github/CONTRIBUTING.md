@@ -15,12 +15,18 @@ enhancement proposals. For general CakePHP support, see
 
 ## Development Setup
 
+From the plugin checkout:
+
 ```bash
 composer install
-
-# Run the plugin migrations
-bin/cake migrations migrate -p Bouncer
 ```
+
+The PHPUnit bootstrap creates its test schema; the checkout has no application
+`bin/cake` command. Run application migrations from a consuming CakePHP app when
+checking installation or developing against real application data.
+
+For documentation, run `npm ci` in `docs`, then `npm run docs:dev` for a local
+preview and `npm run docs:build` before submitting. CI builds the production site.
 
 ## Quality Gates
 

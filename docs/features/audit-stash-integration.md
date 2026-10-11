@@ -6,7 +6,7 @@ have non-overlapping responsibilities and are designed to work together.
 | Plugin | Tracks |
 |---|---|
 | **Bouncer** | the *approval workflow* — who proposed, who reviewed, when, with what reason |
-| **AuditStash** | the *data changes* — every create / update / delete on the source tables, including the ones that approvals apply |
+| **AuditStash** | entity saves and deletes on tables with AuditLog enabled, including the ones that approvals apply |
 
 Together you get the full story: not just "this article was changed at
 2:14 PM" (audit-stash) but also "the change was originally proposed by
@@ -17,21 +17,38 @@ with note 'looks good, ship it'" (bouncer).
 
 ### On `BouncerRecordsTable` — track the approval workflow
 
-Make every change to the proposals table itself audited:
+Extend the plugin table so it retains its schema mappings, validation, and other
+behavior. For example, create `src/Model/Table/AuditedBouncerRecordsTable.php`:
 
 ```php
-// src/Model/Table/BouncerRecordsTable.php (or extend the plugin's)
-public function initialize(array $config): void
+namespace App\Model\Table;
+
+use Bouncer\Model\Table\BouncerRecordsTable;
+
+class AuditedBouncerRecordsTable extends BouncerRecordsTable
 {
-    parent::initialize($config);
-    $this->addBehavior('Timestamp');
-    $this->addBehavior('AuditStash.AuditLog');
+    public function initialize(array $config): void
+    {
+        parent::initialize($config);
+        $this->setEntityClass(\Bouncer\Model\Entity\BouncerRecord::class);
+        $this->addBehavior('AuditStash.AuditLog');
+    }
 }
 ```
 
-Now every status flip — pending → approved, pending → rejected, pending →
-superseded — produces an audit row capturing who flipped it (the
-`reviewer_id`) and any reason note.
+Configure the plugin alias before its first lookup, in `Application::bootstrap()`:
+
+```php
+\Cake\ORM\TableRegistry::getTableLocator()->setConfig('Bouncer.BouncerRecords', [
+    'className' => \App\Model\Table\AuditedBouncerRecordsTable::class,
+]);
+```
+
+An application table with the bare alias `BouncerRecords` does not automatically
+replace `Bouncer.BouncerRecords`. Normal entity saves on the configured table are
+now audited. `autoSupersede` uses a bulk update and does not emit per-entity audit
+callbacks for the superseded rows. If you need those transitions audited, provide
+a custom table implementation or log them explicitly.
 
 ### On your application tables — track the data changes
 

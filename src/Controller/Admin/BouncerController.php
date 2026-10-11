@@ -6,6 +6,7 @@ namespace Bouncer\Controller\Admin;
 
 use App\Controller\AppController;
 use Bouncer\Lib\ThreeWayMerge;
+use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\ForbiddenException;
@@ -13,6 +14,7 @@ use Cake\Log\Log;
 use Closure;
 use DateTime;
 use Exception;
+use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Throwable;
 
@@ -31,6 +33,19 @@ class BouncerController extends AppController
     protected ?string $defaultTable = 'Bouncer.BouncerRecords';
 
     /**
+     * @return void
+     */
+    public function initialize(): void
+    {
+        if (Configure::read('Bouncer.standalone')) {
+            Controller::initialize();
+            $this->loadComponent('Flash');
+        } else {
+            parent::initialize();
+        }
+    }
+
+    /**
      * Before filter callback.
      *
      * @param \Cake\Event\EventInterface $event Event
@@ -39,7 +54,19 @@ class BouncerController extends AppController
      */
     public function beforeFilter(EventInterface $event): void
     {
-        parent::beforeFilter($event);
+        if (Configure::read('Bouncer.standalone')) {
+            Controller::beforeFilter($event);
+        } else {
+            $result = parent::beforeFilter($event);
+            if ($result instanceof ResponseInterface) {
+                $event->setResult($result);
+            }
+            if ($event->getResult() instanceof ResponseInterface) {
+                $event->stopPropagation();
+
+                return;
+            }
+        }
 
         $this->enforceAccessCheck();
         $this->loadHelpers();
@@ -55,6 +82,18 @@ class BouncerController extends AppController
             // Use custom layout
             $this->viewBuilder()->setLayout($adminLayout);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function implementedEvents(): array
+    {
+        if (!Configure::read('Bouncer.standalone')) {
+            return parent::implementedEvents();
+        }
+
+        return ['Controller.initialize' => 'beforeFilter'];
     }
 
     /**
@@ -76,6 +115,10 @@ class BouncerController extends AppController
     {
         $check = Configure::read('Bouncer.accessCheck');
         if ($check === null) {
+            if (Configure::read('Bouncer.standalone')) {
+                throw new ForbiddenException('Bouncer standalone admin requires Bouncer.accessCheck');
+            }
+
             return;
         }
         if (!($check instanceof Closure)) {
@@ -86,6 +129,11 @@ class BouncerController extends AppController
         // decision, so silence the policy check.
         if ($this->components()->has('Authorization') && method_exists($this->components()->get('Authorization'), 'skipAuthorization')) {
             $this->components()->get('Authorization')->skipAuthorization();
+        } else {
+            $authorization = $this->request->getAttribute('authorization');
+            if (is_object($authorization) && is_callable([$authorization, 'skipAuthorization'])) {
+                $authorization->skipAuthorization();
+            }
         }
 
         try {

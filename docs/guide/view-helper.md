@@ -18,7 +18,7 @@ public function initialize(): void
 …or per-controller:
 
 ```php
-public function beforeRender(\Cake\Event\EventInterface $event)
+public function beforeRender(\Cake\Event\EventInterface $event): void
 {
     parent::beforeRender($event);
     $this->viewBuilder()->addHelper('Bouncer.Bouncer');

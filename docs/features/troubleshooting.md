@@ -13,13 +13,12 @@ You expected a draft but the save hit the source table.
 2. **Action in `requireApproval`** — defaults to `['add', 'edit', 'delete']`.
    If you set `['edit']`, new records pass through.
 3. **User ID is reaching the behavior** — pass via `bouncerUserId` in
-   save options, or have a `user_id` field on the entity. Without one,
-   bouncer can't attribute the draft and falls back to `null`.
+   save options, or have a `user_id` field on the entity. Without a nonempty user ID,
+   draft creation fails and the source save is blocked.
 4. **User isn't in `exemptUsers`** — check the configured list and the
    user's id type (string vs int).
-5. **`bypassCallback` doesn't return truthy unintentionally** — easy to
-   write `return $identity` and have it bypass for any logged-in user.
-   Return strict booleans.
+5. **`bypassCallback` returns literal true**: other truthy values do not
+   bypass. Check the permission decision made by the callback.
 6. **`bypassBouncer` save option not set** — `save($entity, ['bypassBouncer' => true])`
    bypasses for that one call.
 
@@ -74,8 +73,9 @@ generic failure message.
    as exceptions. The admin UI catches them and re-renders with an
    error; the `bouncer_record` stays in `pending`.
 5. **Stale proposal with conflicts** — if [3-way merge](./three-way-merge)
-   surfaced unresolvable conflicts, `applyApprovedChanges()` returns
-   `false` rather than guessing. Resolve via `setMergedData()` first.
+   finds conflicts, the bundled admin approve action redirects to resolution.
+   Direct `applyApprovedChanges()` calls use the proposed value on conflicts;
+   check merge results and set resolved data before applying when needed.
 
 ## Multiple pending drafts for the same record
 
@@ -83,13 +83,14 @@ The queue shows two or three pending drafts for one source row from the
 same user.
 
 **With `autoSupersede => true` (default):** this shouldn't happen for
-the same `(source, primary_key, user_id)`. If it does, check whether the
-plugin migration ran (the `autoSupersede` logic depends on indexes from
-the migration).
+the same `(source, primary_key, user_id)`. Check the actual source aliases, primary keys, user IDs, and concurrent requests.
+Indexes alone do not enforce a unique pending draft.
 
-**With `autoSupersede => false`:** this is the documented behavior — old
-drafts stay pending. Either flip the option back on, or supersede
-manually:
+**With `autoSupersede => false`:** proposals from different users stay pending.
+Re-editing a same-user draft still updates the existing proposal. Switching between edit and delete proposals can also leave both pending for
+the same user. Other duplicates require checking the identifiers and concurrent
+requests above.
+To supersede other proposals manually:
 
 ```php
 $bouncerTable->supersedeOthers($source, $primaryKey, $keepId);
