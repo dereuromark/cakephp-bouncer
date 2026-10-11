@@ -21,7 +21,6 @@ use Throwable;
  * Bouncer Behavior
  *
  * Intercepts save operations and creates bouncer records for approval instead.
- *
  */
 class BouncerBehavior extends Behavior
 {
