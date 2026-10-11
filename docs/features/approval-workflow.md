@@ -63,7 +63,7 @@ The `bouncer_records` table stores one row per proposal:
 | `reviewer_id` | integer / null by default | who approved or rejected |
 | `reviewer_display` | string / null | optional display name for the reviewer |
 | `status` | string | `pending` / `approved` / `rejected` / `superseded` |
-| `data` | JSON | JSON-encoded entity payload, including edits |
+| `data` | JSON | JSON-encoded text: new-record fields, dirty edit fields, or a delete marker |
 | `original_data` | JSON / null | snapshot of the source record at draft time — drives diffs and 3-way merge |
 | `original_modified` | datetime / null | source record's `modified` timestamp at draft time — drives staleness detection |
 | `note` | string / null | the **proposer's** note explaining what they changed and why |
@@ -94,7 +94,7 @@ The `bouncer_records` table stores one row per proposal:
 ```
 
 Rows that leave pending are hidden from the default queue, but can be listed
-using status filters. The admin reopen action can return them to pending.
+using status filters. The admin reopen action returns rejected rows to pending.
 
 ## Entity helpers on `BouncerRecord`
 

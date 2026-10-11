@@ -27,8 +27,8 @@ $this->addBehavior('Bouncer.Bouncer', [
     // Set false to defer validation until approval.
     'validateOnDraft' => true,
 
-    // When the same user submits a new proposal for the same record, mark
-    // their previous pending drafts as 'superseded' (default: true).
+    // When a new proposal is stored, mark other pending proposals
+    // for its source and primary key as 'superseded' (default: true).
     'autoSupersede' => true,
 
     // When a source row is actually deleted, remove the bouncer records tied

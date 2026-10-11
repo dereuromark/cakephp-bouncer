@@ -36,7 +36,7 @@ $this->addBehavior('Bouncer.Bouncer', [
         if (!$userId) {
             return false;
         }
-        $user = $table->getTableLocator()->get('Users')->get($userId);
+        $user = \Cake\ORM\TableRegistry::getTableLocator()->get('Users')->get($userId);
 
         return in_array($user->role, ['admin', 'editor'], true);
     },

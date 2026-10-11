@@ -13,12 +13,12 @@ approve, reject, and delete; the other actions use controller fallbacks:
 |---|---|---|---|
 | `/admin/bouncer` | GET | `index` | List proposals — filter by status, table, user |
 | `/admin/bouncer/view/{id}` | GET | `view` | Show one proposal — side-by-side and inline diff, metadata, proposer note |
-| `/admin/bouncer/bouncer/resolve/{id}` | GET | `resolve` | Combined approve/reject screen with reason text-area |
+| `/admin/bouncer/bouncer/resolve/{id}` | GET, POST, PUT | `resolve` | Resolve conflicts for a stale pending edit proposal |
 | `/admin/bouncer/approve/{id}` | POST | `approve` | Apply the proposed changes to the source table |
 | `/admin/bouncer/reject/{id}` | POST | `reject` | Mark as rejected, store the reviewer's reason |
-| `/admin/bouncer/bouncer/reopen/{id}` | POST | `reopen` | Move an approved / rejected / superseded row back to `pending` for re-review |
-| `/admin/bouncer/delete/{id}` | POST | `delete` | Hard-delete the bouncer record entirely (audit-trail-aware: pair with AuditStash if you want to keep a deletion log) |
-| `/admin/bouncer/bouncer/reset` | POST | `reset` | Truncate the entire bouncer queue — debug / dev tooling, gate behind a strict access check |
+| `/admin/bouncer/bouncer/reopen/{id}` | POST | `reopen` | Move a rejected row back to `pending` for re-review |
+| `/admin/bouncer/delete/{id}` | POST | `delete` | Delete a pending proposal |
+| `/admin/bouncer/bouncer/reset` | POST | `reset` | Clear the proposal queue; requires debug mode and access permission |
 
 `reset` is the heavy hammer — it clears the whole `bouncer_records`
 table. Don't expose it to anyone you wouldn't trust with a SQL `TRUNCATE`.

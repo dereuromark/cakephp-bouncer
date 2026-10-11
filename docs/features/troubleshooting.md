@@ -87,8 +87,9 @@ the same `(source, primary_key, user_id)`. Check the actual source aliases, prim
 Indexes alone do not enforce a unique pending draft.
 
 **With `autoSupersede => false`:** proposals from different users stay pending.
-Re-editing a same-user draft still updates the existing proposal. Same-user
-duplicates require checking the identifiers and concurrent requests above.
+Re-editing a same-user draft still updates the existing proposal. Switching between edit and delete proposals can also leave both pending for
+the same user. Other duplicates require checking the identifiers and concurrent
+requests above.
 To supersede other proposals manually:
 
 ```php
