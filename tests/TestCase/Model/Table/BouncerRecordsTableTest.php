@@ -209,6 +209,7 @@ class BouncerRecordsTableTest extends TestCase
         $record3 = $this->BouncerRecords->get($record3->id);
         $this->assertEquals('superseded', $record3->status);
     }
+
     /**
      * @return void
      */
@@ -219,6 +220,7 @@ class BouncerRecordsTableTest extends TestCase
              * @param string $source
              * @param string|int|null $primaryKey
              * @param string|int|null $userId
+             *
              * @return \Cake\ORM\Query\SelectQuery
              */
             public function findPendingForRecord(string $source, string|int|null $primaryKey, string|int|null $userId = null)
@@ -237,5 +239,4 @@ class BouncerRecordsTableTest extends TestCase
         $this->assertSame(0, $table->findPending()->count());
         $this->assertSame(0, $table->findPendingForRecord('Articles', 1)->count());
     }
-
 }
