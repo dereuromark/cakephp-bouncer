@@ -6,7 +6,7 @@ have non-overlapping responsibilities and are designed to work together.
 | Plugin | Tracks |
 |---|---|
 | **Bouncer** | the *approval workflow* — who proposed, who reviewed, when, with what reason |
-| **AuditStash** | the *data changes* — entity saves and deletes on tables with AuditLog enabled, including the ones that approvals apply |
+| **AuditStash** | entity saves and deletes on tables with AuditLog enabled, including the ones that approvals apply |
 
 Together you get the full story: not just "this article was changed at
 2:14 PM" (audit-stash) but also "the change was originally proposed by

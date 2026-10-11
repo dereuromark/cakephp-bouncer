@@ -11,8 +11,8 @@ approve, reject, and delete; the other actions use controller fallbacks:
 
 | Path | Method | Action | Purpose |
 |---|---|---|---|
-| `/admin/bouncer` | GET | `index` | List proposals — filter by status, table, user |
-| `/admin/bouncer/view/{id}` | GET | `view` | Show one proposal — side-by-side and inline diff, metadata, proposer note |
+| `/admin/bouncer` | GET | `index` | List proposals filtered by status, table, or user |
+| `/admin/bouncer/view/{id}` | GET | `view` | Show one proposal with diffs, metadata, and proposer note |
 | `/admin/bouncer/bouncer/resolve/{id}` | GET, POST, PUT | `resolve` | Resolve conflicts for a stale pending edit proposal |
 | `/admin/bouncer/approve/{id}` | POST | `approve` | Apply the proposed changes to the source table |
 | `/admin/bouncer/reject/{id}` | POST | `reject` | Mark as rejected, store the reviewer's reason |
@@ -32,7 +32,7 @@ The plugin extends the host application's `AppController`. Neither the Admin
 prefix nor loading the plugin alone authenticates a request. There are two places
 to enforce access:
 
-1. **Host `AppController` auth** — configure authentication and
+1. **Host `AppController` auth**: configure authentication and
    authorization for these plugin routes in the host `AppController` or middleware.
 2. **`Bouncer.accessCheck`** (optional) — a closure for defense-in-depth or
    "moderators only, not all admins" carve-outs. See

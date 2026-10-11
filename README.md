@@ -17,7 +17,7 @@ Approval workflow for CakePHP: users propose changes, admins/moderators review a
 
 - **Drop-in approval workflow** — single behavior on a Table turns saves into pending drafts; original record stays untouched until approved.
 - **Admin diff viewer** — built-in UI for the queue with side-by-side and inline diffs (word-level via `jfcherng/php-diff`), filters, status badges, and one-click approve / reject with reasons.
-- **3-way merge** — proposals that became stale because the source record changed independently auto-merge non-overlapping edits; conflicts can keep the proposed value, so review the documented merge rules.
+- **3-way merge**: proposals that became stale because the source record changed independently auto-merge non-overlapping edits; conflicts can keep the proposed value, so review the documented merge rules.
 - **Draft-safe re-edits** — users editing the same record see and update their own pending draft instead of stacking duplicates; auto-supersede keeps the queue focused.
 - **Flexible bypass** — exempt user lists, custom bypass callbacks, or per-save `bypassBouncer` flag — integrate with policies, roles, or admin tooling.
 - **Pairs with AuditStash** — Bouncer logs the approval workflow; [cakephp-audit-stash](https://github.com/dereuromark/cakephp-audit-stash) logs the data changes the approvals apply.
@@ -30,7 +30,7 @@ Approval workflow for CakePHP: users propose changes, admins/moderators review a
 Full docs: **<https://dereuromark.github.io/cakephp-bouncer/>**
 
 - [Installation](https://dereuromark.github.io/cakephp-bouncer/guide/installation)
-- [Getting Started](https://dereuromark.github.io/cakephp-bouncer/guide/) — behavior setup, controller wiring, proposal review
+- [Getting Started](https://dereuromark.github.io/cakephp-bouncer/guide/): behavior setup, controller wiring, proposal review
 - [Configuration](https://dereuromark.github.io/cakephp-bouncer/guide/configuration) — behavior options and `Bouncer.*` app config
 - [Usage](https://dereuromark.github.io/cakephp-bouncer/guide/usage) — controller patterns, draft re-edit, programmatic approval
 - [View Helper](https://dereuromark.github.io/cakephp-bouncer/guide/view-helper) — render proposals in your own templates
