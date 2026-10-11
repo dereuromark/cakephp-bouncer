@@ -62,6 +62,8 @@ class BouncerController extends AppController
                 $event->setResult($result);
             }
             if ($event->getResult() instanceof ResponseInterface) {
+                $event->stopPropagation();
+
                 return;
             }
         }

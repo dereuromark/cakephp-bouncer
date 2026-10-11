@@ -123,6 +123,8 @@ jobs:
   docs:
     name: Documentation build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

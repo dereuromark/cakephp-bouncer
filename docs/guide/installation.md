@@ -23,7 +23,7 @@ To disable plugin routes, update the generated entry in `config/plugins.php`:
 'Bouncer' => ['routes' => false],
 ```
 
-### Custom admin routes
+## Custom admin routes
 
 The default queue is available at `/admin/bouncer`. To use your own route map,
 disable plugin routes as shown above and add this block to `config/routes.php`:
