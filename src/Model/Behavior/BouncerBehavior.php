@@ -66,7 +66,7 @@ class BouncerBehavior extends Behavior
      *
      * @var \Bouncer\Model\Entity\BouncerRecord|null
      */
-    protected ?BouncerRecord $lastBouncerRecord = null;
+    protected $lastBouncerRecord;
 
     /**
      * Tracks if last bouncer operation failed (vs. intentionally skipped).
@@ -858,7 +858,7 @@ class BouncerBehavior extends Behavior
      *
      * @return \Bouncer\Model\Entity\BouncerRecord|null
      */
-    public function getLastBouncerRecord(): ?BouncerRecord
+    public function getLastBouncerRecord()
     {
         return $this->lastBouncerRecord;
     }

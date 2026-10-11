@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bouncer\Test\TestCase\Model\Table;
 
+use Bouncer\Model\Table\BouncerRecordsTable;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\TestSuite\TestCase;
 
@@ -208,4 +209,33 @@ class BouncerRecordsTableTest extends TestCase
         $record3 = $this->BouncerRecords->get($record3->id);
         $this->assertEquals('superseded', $record3->status);
     }
+    /**
+     * @return void
+     */
+    public function testReleasedFinderSubclassDeclarationsRemainSupported(): void
+    {
+        $table = new class (['connection' => $this->BouncerRecords->getConnection(), 'table' => 'bouncer_records', 'alias' => 'BouncerRecords']) extends BouncerRecordsTable {
+            /**
+             * @param string $source
+             * @param string|int|null $primaryKey
+             * @param string|int|null $userId
+             * @return \Cake\ORM\Query\SelectQuery
+             */
+            public function findPendingForRecord(string $source, string|int|null $primaryKey, string|int|null $userId = null)
+            {
+                return parent::findPendingForRecord($source, $primaryKey, $userId);
+            }
+
+            /**
+             * @return \Cake\ORM\Query\SelectQuery
+             */
+            public function findPending()
+            {
+                return parent::findPending();
+            }
+        };
+        $this->assertSame(0, $table->findPending()->count());
+        $this->assertSame(0, $table->findPendingForRecord('Articles', 1)->count());
+    }
+
 }

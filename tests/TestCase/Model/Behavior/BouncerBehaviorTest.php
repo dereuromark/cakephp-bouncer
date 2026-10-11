@@ -1921,4 +1921,26 @@ class BouncerBehaviorTest extends TestCase
 
         $this->assertSame(1, $this->BouncerRecords->find()->count());
     }
+
+    /**
+     * @return void
+     */
+    public function testReleasedBehaviorSubclassDeclarationsRemainSupported(): void
+    {
+        $behavior = new class ($this->Articles) extends BouncerBehavior {
+            /**
+             * @var \Bouncer\Model\Entity\BouncerRecord|null
+             */
+            protected $lastBouncerRecord;
+
+            /**
+             * @return \Bouncer\Model\Entity\BouncerRecord|null
+             */
+            public function getLastBouncerRecord()
+            {
+                return parent::getLastBouncerRecord();
+            }
+        };
+        $this->assertNull($behavior->getLastBouncerRecord());
+    }
 }
