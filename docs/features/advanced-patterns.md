@@ -128,12 +128,15 @@ public function customApprove($id)
 
         $primaryKey = $sourceTable->getPrimaryKey();
         $primaryKey = is_array($primaryKey) ? $primaryKey[0] : $primaryKey;
-        $bouncerTable->patchEntity($bouncerRecord, [
+        $reviewData = [
             'status' => 'approved',
             'reviewer_id' => $this->Authentication->getIdentity()->getIdentifier(),
             'reviewed' => new DateTime(),
-            'primary_key' => is_object($result) ? $result->get($primaryKey) : null,
-        ]);
+        ];
+        if ($result instanceof \Cake\Datasource\EntityInterface) {
+            $reviewData['primary_key'] = $result->get($primaryKey);
+        }
+        $bouncerTable->patchEntity($bouncerRecord, $reviewData);
         $bouncerTable->saveOrFail($bouncerRecord);
     });
 

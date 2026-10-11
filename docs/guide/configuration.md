@@ -59,10 +59,10 @@ don't want users blocked on incomplete data.
 
 ### `autoSupersede`
 
-When a user has multiple pending drafts for the same source/primary key,
-the queue gets noisy. With `autoSupersede` (default), each new proposal
+With `autoSupersede` (default), each new proposal
 marks other pending drafts for that source and primary key as `superseded`,
-including drafts from other users.
+including drafts from other users. New-record proposals share a null primary
+key, so a new add proposal also supersedes other pending adds for that source.
 Set `autoSupersede` to false when proposals from different users must remain
 pending together. Re-editing an existing same-user draft still updates that row.
 

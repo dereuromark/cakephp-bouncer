@@ -58,9 +58,9 @@ The `bouncer_records` table stores one row per proposal:
 | `id` | integer | proposal primary key |
 | `source` | string | model name (`Articles`, `Community.Stories` for plugins) |
 | `primary_key` | integer / uuid / null | source-record id, NULL for new-record proposals |
-| `user_id` | integer / uuid | who proposed |
+| `user_id` | integer by default | who proposed |
 | `user_display` | string / null | optional display name for the proposer |
-| `reviewer_id` | integer / uuid / null | who approved or rejected |
+| `reviewer_id` | integer / null by default | who approved or rejected |
 | `reviewer_display` | string / null | optional display name for the reviewer |
 | `status` | string | `pending` / `approved` / `rejected` / `superseded` |
 | `data` | JSON | JSON-encoded entity payload, including edits |

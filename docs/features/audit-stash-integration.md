@@ -30,6 +30,7 @@ class AuditedBouncerRecordsTable extends BouncerRecordsTable
     public function initialize(array $config): void
     {
         parent::initialize($config);
+        $this->setEntityClass(\Bouncer\Model\Entity\BouncerRecord::class);
         $this->addBehavior('AuditStash.AuditLog');
     }
 }

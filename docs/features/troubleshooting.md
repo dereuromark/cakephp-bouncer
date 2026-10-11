@@ -86,9 +86,10 @@ same user.
 the same `(source, primary_key, user_id)`. Check the actual source aliases, primary keys, user IDs, and concurrent requests.
 Indexes alone do not enforce a unique pending draft.
 
-**With `autoSupersede => false`:** this is the documented behavior — old
-drafts stay pending. Either flip the option back on, or supersede
-manually:
+**With `autoSupersede => false`:** proposals from different users stay pending.
+Re-editing a same-user draft still updates the existing proposal. Same-user
+duplicates require checking the identifiers and concurrent requests above.
+To supersede other proposals manually:
 
 ```php
 $bouncerTable->supersedeOthers($source, $primaryKey, $keepId);

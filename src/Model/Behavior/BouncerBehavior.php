@@ -113,6 +113,9 @@ class BouncerBehavior extends Behavior
     }
 
     /**
+     * Commit the proposal before the parent save rolls back, then reopen its transaction.
+     * An outer host transaction prevents this commit; the proposal then shares its outcome.
+     *
      * @param \Cake\Database\Connection $connection Connection
      *
      * @return void
