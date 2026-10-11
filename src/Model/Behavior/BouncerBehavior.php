@@ -22,7 +22,6 @@ use Throwable;
  *
  * Intercepts save operations and creates bouncer records for approval instead.
  *
- * @property \Cake\ORM\Table $_table
  */
 class BouncerBehavior extends Behavior
 {

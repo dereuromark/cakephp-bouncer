@@ -37,7 +37,7 @@ use Cake\Routing\Route\DashedRoute;
 use Cake\Routing\RouteBuilder;
 
 $routes->prefix('Admin', function (RouteBuilder $routes): void {
-    $routes->plugin('Bouncer', ['path' => '/bouncer'], function (RouteBuilder $routes): void {
+    $routes->plugin('Bouncer', function (RouteBuilder $routes): void {
         $routes->setRouteClass(DashedRoute::class);
         $routes->connect('/pending', ['controller' => 'Bouncer', 'action' => 'index']);
         $routes->fallbacks();
@@ -53,6 +53,6 @@ Follow [Getting started](index.md) to enable proposals for an existing table.
 
 ## Host callbacks on CakePHP 6
 
-The host controller's `beforeFilter()` returns `void`. A redirect guard should set its response on the event, for example `$event->setResult($this->redirect('/login'))`. Bouncer preserves that response and stops later listeners. Standalone mode skips the host guard and requires an explicit `Bouncer.adminAccess` check.
+The host controller's `beforeFilter()` returns `void`. A redirect guard should set its response on the event, for example `$event->setResult($this->redirect('/login'))`. Bouncer preserves that response and stops later listeners. Standalone mode skips the host guard and requires an explicit `Bouncer.accessCheck` check.
 
 Custom behaviors and helpers define their configuration defaults in `$defaultConfig`. Entity mass-assignment rules use `$patchable`, and marshalling options use `patchableFields`.
