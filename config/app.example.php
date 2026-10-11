@@ -19,6 +19,9 @@ return [
          */
         'adminLayout' => null,
 
+        // Skip host initialize() and beforeFilter(); requires accessCheck below.
+        'standalone' => false,
+
         /**
          * Back-to-App link in the admin header
          *

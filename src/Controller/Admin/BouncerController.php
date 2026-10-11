@@ -6,6 +6,7 @@ namespace Bouncer\Controller\Admin;
 
 use App\Controller\AppController;
 use Bouncer\Lib\ThreeWayMerge;
+use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\ForbiddenException;
@@ -31,6 +32,19 @@ class BouncerController extends AppController
     protected ?string $defaultTable = 'Bouncer.BouncerRecords';
 
     /**
+     * @return void
+     */
+    public function initialize(): void
+    {
+        if (Configure::read('Bouncer.standalone')) {
+            Controller::initialize();
+            $this->loadComponent('Flash');
+        } else {
+            parent::initialize();
+        }
+    }
+
+    /**
      * Before filter callback.
      *
      * @param \Cake\Event\EventInterface $event Event
@@ -39,7 +53,11 @@ class BouncerController extends AppController
      */
     public function beforeFilter(EventInterface $event): void
     {
-        parent::beforeFilter($event);
+        if (Configure::read('Bouncer.standalone')) {
+            Controller::beforeFilter($event);
+        } else {
+            parent::beforeFilter($event);
+        }
 
         $this->enforceAccessCheck();
         $this->loadHelpers();
@@ -76,6 +94,10 @@ class BouncerController extends AppController
     {
         $check = Configure::read('Bouncer.accessCheck');
         if ($check === null) {
+            if (Configure::read('Bouncer.standalone')) {
+                throw new ForbiddenException('Bouncer standalone admin requires Bouncer.accessCheck');
+            }
+
             return;
         }
         if (!($check instanceof Closure)) {

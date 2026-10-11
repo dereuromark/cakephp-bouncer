@@ -122,7 +122,8 @@ When unset (the default), the button is hidden — the header looks unchanged.
 
 ### `Bouncer.accessCheck`
 
-Optional access gate for the admin UI. If unset, the plugin does not add an
+Optional access gate for the admin UI in the default mode; required when
+`Bouncer.standalone` is true. If unset, the plugin does not add an
 access check; configure the host application's authentication and authorization
 for these routes. The Admin prefix alone does not protect them.
 

@@ -66,8 +66,59 @@ class BouncerControllerTest extends TestCase
     {
         unset($this->BouncerRecords, $this->Articles);
         Configure::delete('Bouncer.accessCheck');
+        Configure::delete('Bouncer.standalone');
+        Configure::delete('Test.hostInitialize');
+        Configure::delete('Test.hostBeforeFilter');
 
         parent::tearDown();
+    }
+
+    public function testDefaultCallsHostCallbacks(): void
+    {
+        Configure::write('Bouncer.standalone', false);
+        Configure::write('Bouncer.accessCheck', fn (): bool => true);
+        Configure::delete('Test.hostInitialize');
+        Configure::delete('Test.hostBeforeFilter');
+
+        $this->get(['prefix' => 'Admin', 'plugin' => 'Bouncer', 'controller' => 'Bouncer', 'action' => 'index']);
+
+        $this->assertResponseOk();
+        $this->assertTrue(Configure::read('Test.hostInitialize'));
+        $this->assertTrue(Configure::read('Test.hostBeforeFilter'));
+    }
+
+    public function testStandaloneSkipsHostCallbacks(): void
+    {
+        Configure::write('Bouncer.standalone', true);
+        Configure::write('Bouncer.accessCheck', fn (): bool => true);
+        Configure::delete('Test.hostInitialize');
+        Configure::delete('Test.hostBeforeFilter');
+
+        $this->get(['prefix' => 'Admin', 'plugin' => 'Bouncer', 'controller' => 'Bouncer', 'action' => 'index']);
+
+        $this->assertResponseOk();
+        $this->assertNull(Configure::read('Test.hostInitialize'));
+        $this->assertNull(Configure::read('Test.hostBeforeFilter'));
+    }
+
+    public function testStandaloneWithoutGateRejects(): void
+    {
+        $this->disableErrorHandlerMiddleware();
+        Configure::write('Bouncer.standalone', true);
+        Configure::delete('Bouncer.accessCheck');
+
+        $this->expectException(ForbiddenException::class);
+        $this->get(['prefix' => 'Admin', 'plugin' => 'Bouncer', 'controller' => 'Bouncer', 'action' => 'index']);
+    }
+
+    public function testStandaloneDeniedGateRejects(): void
+    {
+        $this->disableErrorHandlerMiddleware();
+        Configure::write('Bouncer.standalone', true);
+        Configure::write('Bouncer.accessCheck', fn (): bool => false);
+
+        $this->expectException(ForbiddenException::class);
+        $this->get(['prefix' => 'Admin', 'plugin' => 'Bouncer', 'controller' => 'Bouncer', 'action' => 'index']);
     }
 
     public function testAccessCheckUnsetIsNoOp(): void

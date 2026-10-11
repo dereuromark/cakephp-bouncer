@@ -41,8 +41,21 @@ to enforce access:
 `Bouncer.accessCheck` must be a Closure that returns literal true to grant access.
 If configured, the plugin skips the controller Authorization component's policy
 check when that component provides `skipAuthorization()`. Make the full intended
-permission decision in the Closure. There is no implemented `Bouncer.standalone`
-switch that removes inheritance from the host `AppController`.
+permission decision in the Closure.
+
+### Standalone setup
+
+Set `Bouncer.standalone` to `true` to skip the host `AppController::initialize()`
+and `beforeFilter()`. The plugin loads Flash and its own helpers and layout.
+In this mode, `Bouncer.accessCheck` is required; an absent check returns 403.
+
+```php
+Configure::write('Bouncer.standalone', true);
+```
+
+Configure the access Closure above before enabling this mode. Application
+middleware and other inherited controller callbacks still run. Standalone mode
+does not remove middleware authentication or authorization requirements.
 
 ## Admin layout
 
