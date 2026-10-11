@@ -60,7 +60,8 @@ class BouncerController extends AppController
             $result = parent::beforeFilter($event);
             if ($result instanceof ResponseInterface) {
                 $event->setResult($result);
-
+            }
+            if ($event->getResult() instanceof ResponseInterface) {
                 return;
             }
         }
