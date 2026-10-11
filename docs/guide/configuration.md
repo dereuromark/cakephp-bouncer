@@ -61,8 +61,10 @@ don't want users blocked on incomplete data.
 
 When a user has multiple pending drafts for the same source/primary key,
 the queue gets noisy. With `autoSupersede` (default), each new proposal
-marks the user's previous pending drafts as `superseded` automatically.
-Switch to `false` to keep every proposal in the queue.
+marks other pending drafts for that source and primary key as `superseded`,
+including drafts from other users.
+Set `autoSupersede` to false when proposals from different users must remain
+pending together. Re-editing an existing same-user draft still updates that row.
 
 > Manual variant: `$bouncerTable->supersedeOthers($source, $primaryKey, $keepId)`.
 
@@ -118,17 +120,11 @@ through the `bouncer` domain).
 
 When unset (the default), the button is hidden — the header looks unchanged.
 
-### `Bouncer.standalone`
-
-When `true`, the admin controller does not extend host `AppController`'s
-auth/loadComponent behavior. Useful for projects that want the bouncer
-admin to operate under a separate auth stack (e.g. a static admin token
-or a different identity provider).
-
 ### `Bouncer.accessCheck`
 
-Defense-in-depth gate for the admin UI. Optional — the host app's
-`AppController` auth is already the first line of defense.
+Optional access gate for the admin UI. If unset, the plugin does not add an
+access check; configure the host application's authentication and authorization
+for these routes. The Admin prefix alone does not protect them.
 
 ```php
 use Cake\Core\Configure;

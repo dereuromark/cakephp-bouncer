@@ -33,7 +33,10 @@ The callback receives:
 $this->addBehavior('Bouncer.Bouncer', [
     'bypassCallback' => function ($entity, $options, $table) {
         $userId = $options['bouncerUserId'] ?? $entity->get('user_id');
-        $user   = $table->fetchTable('Users')->get($userId);
+        if (!$userId) {
+            return false;
+        }
+        $user = $table->getTableLocator()->get('Users')->get($userId);
 
         return in_array($user->role, ['admin', 'editor'], true);
     },
@@ -62,7 +65,7 @@ on the normal save path:
 
 ```php
 // In AppController::beforeFilter
-public function beforeFilter(EventInterface $event)
+public function beforeFilter(\Cake\Event\EventInterface $event): void
 {
     parent::beforeFilter($event);
 
@@ -76,9 +79,9 @@ public function beforeFilter(EventInterface $event)
 }
 ```
 
-This is cleaner than adding the behavior unconditionally and bypassing —
-the table without the behavior never even attempts to serialize a draft,
-so there's no overhead and no surprise edge cases.
+Conditional attachment affects only those controller paths. Writes from other
+controllers, commands, or jobs can bypass it. Attaching the behavior in the table
+and using a permission-aware bypass callback applies to more write paths.
 
 ## Per-save bypass
 
@@ -118,17 +121,20 @@ public function customApprove($id)
 
     $connection = $bouncerTable->getConnection();
     $connection->transactional(function () use ($bouncerRecord, $sourceTable, $bouncerTable) {
-        $entity = $sourceTable
-            ->getBehavior('Bouncer')
-            ->applyApprovedChanges($bouncerRecord);
+        $result = $sourceTable->getBehavior('Bouncer')->applyApprovedChanges($bouncerRecord);
+        if (!$result) {
+            throw new \RuntimeException('The proposal could not be applied.');
+        }
 
+        $primaryKey = $sourceTable->getPrimaryKey();
+        $primaryKey = is_array($primaryKey) ? $primaryKey[0] : $primaryKey;
         $bouncerTable->patchEntity($bouncerRecord, [
-            'status'      => 'approved',
+            'status' => 'approved',
             'reviewer_id' => $this->Authentication->getIdentity()->getIdentifier(),
-            'reviewed'    => new DateTime(),
-            'primary_key' => $entity->id,
+            'reviewed' => new DateTime(),
+            'primary_key' => is_object($result) ? $result->get($primaryKey) : null,
         ]);
-        $bouncerTable->save($bouncerRecord);
+        $bouncerTable->saveOrFail($bouncerRecord);
     });
 
     $this->Flash->success('Approved and published');
@@ -137,7 +143,8 @@ public function customApprove($id)
 }
 ```
 
-The transactional wrapper is important — without it, a partial failure
+Both tables must use the same database connection for this transaction.
+Without that, a partial failure
 between "apply changes" and "mark bouncer_record approved" leaves the
 queue in a confusing state ("the change is live but the record still
 shows as pending").

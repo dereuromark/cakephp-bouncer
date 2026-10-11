@@ -5,28 +5,19 @@ proposal queue.
 
 ## Routes
 
-Mount the plugin under your admin prefix:
-
-```php
-$routes->prefix('Admin', function (RouteBuilder $routes) {
-    $routes->plugin('Bouncer', function (RouteBuilder $routes) {
-        $routes->connect('/pending', ['controller' => 'Bouncer', 'action' => 'index']);
-        $routes->fallbacks();
-    });
-});
-```
-
-`/admin/bouncer/bouncer` is the queue. `fallbacks()` wires the rest:
+Loading the plugin registers `/admin/bouncer` as the proposal queue. Do not add
+a second route block for the defaults. The plugin provides short routes for view,
+approve, reject, and delete; the other actions use controller fallbacks:
 
 | Path | Method | Action | Purpose |
 |---|---|---|---|
-| `/admin/bouncer/bouncer` | GET | `index` | List proposals — filter by status, table, user |
-| `/admin/bouncer/bouncer/view/{id}` | GET | `view` | Show one proposal — side-by-side and inline diff, metadata, proposer note |
+| `/admin/bouncer` | GET | `index` | List proposals — filter by status, table, user |
+| `/admin/bouncer/view/{id}` | GET | `view` | Show one proposal — side-by-side and inline diff, metadata, proposer note |
 | `/admin/bouncer/bouncer/resolve/{id}` | GET | `resolve` | Combined approve/reject screen with reason text-area |
-| `/admin/bouncer/bouncer/approve/{id}` | POST | `approve` | Apply the proposed changes to the source table |
-| `/admin/bouncer/bouncer/reject/{id}` | POST | `reject` | Mark as rejected, store the reviewer's reason |
+| `/admin/bouncer/approve/{id}` | POST | `approve` | Apply the proposed changes to the source table |
+| `/admin/bouncer/reject/{id}` | POST | `reject` | Mark as rejected, store the reviewer's reason |
 | `/admin/bouncer/bouncer/reopen/{id}` | POST | `reopen` | Move an approved / rejected / superseded row back to `pending` for re-review |
-| `/admin/bouncer/bouncer/delete/{id}` | POST | `delete` | Hard-delete the bouncer record entirely (audit-trail-aware: pair with AuditStash if you want to keep a deletion log) |
+| `/admin/bouncer/delete/{id}` | POST | `delete` | Hard-delete the bouncer record entirely (audit-trail-aware: pair with AuditStash if you want to keep a deletion log) |
 | `/admin/bouncer/bouncer/reset` | POST | `reset` | Truncate the entire bouncer queue — debug / dev tooling, gate behind a strict access check |
 
 `reset` is the heavy hammer — it clears the whole `bouncer_records`
@@ -37,17 +28,21 @@ that distinction.
 
 ## Access control
 
-Two layers, both optional:
+The plugin extends the host application's `AppController`. Neither the Admin
+prefix nor loading the plugin alone authenticates a request. There are two places
+to enforce access:
 
-1. **Host `AppController` auth** — your existing admin gate already protects
-   `/admin/*`. Usually that's all you need.
+1. **Host `AppController` auth** — configure authentication and
+   authorization for these plugin routes in the host `AppController` or middleware.
 2. **`Bouncer.accessCheck`** (optional) — a closure for defense-in-depth or
    "moderators only, not all admins" carve-outs. See
    [Configuration → `Bouncer.accessCheck`](../guide/configuration#bouncer-accesscheck).
 
-If you want the plugin admin to operate **outside** your host auth stack
-entirely (separate token, separate identity provider), set
-`Bouncer.standalone => true` and use `accessCheck` as the actual gate.
+`Bouncer.accessCheck` must be a Closure that returns literal true to grant access.
+If configured, the plugin skips the controller Authorization component's policy
+check when that component provides `skipAuthorization()`. Make the full intended
+permission decision in the Closure. There is no implemented `Bouncer.standalone`
+switch that removes inheritance from the host `AppController`.
 
 ## Admin layout
 

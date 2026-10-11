@@ -43,15 +43,6 @@ return [
         // 'adminBackLabel' => 'Back to admin',
 
         /**
-         * Standalone Mode
-         *
-         * When enabled, the admin interface operates independently without
-         * inheriting from AppController's authentication/authorization.
-         * Useful for quick setup or when using separate admin authentication.
-         */
-        'standalone' => false,
-
-        /**
          * Admin access gate (optional, defense-in-depth).
          *
          * Unset = no-op; the host AppController's auth is the only gate.

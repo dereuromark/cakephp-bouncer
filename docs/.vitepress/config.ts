@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'cakephp-bouncer',
-  description: 'Approval workflow for CakePHP — propose, review, approve or reject changes with diff and 3-way merge.',
+  description: 'Approval workflow for CakePHP: propose, review, approve or reject changes with diff and 3-way merge.',
   base: '/cakephp-bouncer/',
   cleanUrls: true,
   head: [
@@ -28,7 +28,8 @@ export default defineConfig({
         {
           text: 'Guide',
           items: [
-            { text: 'Getting Started', link: '/guide/' },
+            { text: 'Installation', link: '/guide/installation' },
+            { text: 'Getting started', link: '/guide/' },
             { text: 'Configuration', link: '/guide/configuration' },
             { text: 'Usage', link: '/guide/usage' },
             { text: 'View Helper', link: '/guide/view-helper' },
