@@ -23,7 +23,26 @@ To disable plugin routes, update the generated entry in `config/plugins.php`:
 'Bouncer' => ['routes' => false],
 ```
 
-Keep plugin routes enabled to use the bundled Admin UI. Disabling them leaves
-proposal handling available for an application that supplies its own review UI.
+### Custom admin routes
+
+The default queue is available at `/admin/bouncer`. To use your own route map,
+disable plugin routes as shown above and add this block to `config/routes.php`:
+
+```php
+use Cake\Routing\Route\DashedRoute;
+use Cake\Routing\RouteBuilder;
+
+$routes->prefix('Admin', function (RouteBuilder $routes): void {
+    $routes->plugin('Bouncer', ['path' => '/bouncer'], function (RouteBuilder $routes): void {
+        $routes->setRouteClass(DashedRoute::class);
+        $routes->connect('/pending', ['controller' => 'Bouncer', 'action' => 'index']);
+        $routes->fallbacks();
+    });
+});
+```
+
+This maps the queue to `/admin/bouncer/pending`. Fallbacks provide controller
+URLs such as `/admin/bouncer/bouncer/view/1`; they do not recreate the plugin's
+short `/view/1` routes. See [Admin UI](../features/admin-ui.md) for the default map.
 
 Follow [Getting started](index.md) to enable proposals for an existing table.
