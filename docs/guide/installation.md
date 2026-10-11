@@ -1,10 +1,14 @@
 # Installation
 
+This development branch targets CakePHP 6 and PHP 8.5.
+
 Ensure your application has the Migrations plugin installed and loaded. From
 your CakePHP application directory:
 
 ```bash
-composer require dereuromark/cakephp-bouncer
+composer config minimum-stability dev
+composer config prefer-stable true
+composer require cakephp/cakephp:^6.0@dev dereuromark/cakephp-bouncer:dev-cake6
 bin/cake plugin load Bouncer
 bin/cake migrations migrate -p Bouncer
 ```
@@ -46,3 +50,9 @@ URLs such as `/admin/bouncer/bouncer/view/1`; they do not recreate the plugin's
 short `/view/1` routes. See [Admin UI](../features/admin-ui.md) for the default map.
 
 Follow [Getting started](index.md) to enable proposals for an existing table.
+
+## Host callbacks on CakePHP 6
+
+The host controller's `beforeFilter()` returns `void`. A redirect guard should set its response on the event, for example `$event->setResult($this->redirect('/login'))`. Bouncer preserves that response and stops later listeners. Standalone mode skips the host guard and requires an explicit `Bouncer.adminAccess` check.
+
+Custom behaviors and helpers define their configuration defaults in `$defaultConfig`. Entity mass-assignment rules use `$patchable`, and marshalling options use `patchableFields`.

@@ -44,7 +44,7 @@ class BouncerBehavior extends Behavior
      *
      * @var array<string, mixed>
      */
-    protected array $_defaultConfig = [
+    protected array $defaultConfig = [
         'userField' => 'user_id',
         'requireApproval' => ['add', 'edit', 'delete'],
         'exemptUsers' => [],
@@ -260,7 +260,7 @@ class BouncerBehavior extends Behavior
 
         // Validate entity if configured
         if ($this->getConfig('validateOnDraft')) {
-            $validator = $this->_table->getValidator();
+            $validator = $this->table()->getValidator();
             $errors = $validator->validate($entity->toArray(), $isNew);
             if ($errors) {
                 $entity->setErrors($errors);
@@ -369,7 +369,7 @@ class BouncerBehavior extends Behavior
             return;
         }
 
-        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKeyField = $this->table()->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
         if ($primaryKey === null) {
             return;
@@ -378,7 +378,7 @@ class BouncerBehavior extends Behavior
         /** @var \Bouncer\Model\Table\BouncerRecordsTable $bouncerTable */
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
         $bouncerTable->deleteAll([
-            'source' => $this->_table->getRegistryAlias(),
+            'source' => $this->table()->getRegistryAlias(),
             'primary_key' => (string)$primaryKey,
         ]);
     }
@@ -404,10 +404,10 @@ class BouncerBehavior extends Behavior
         }
 
         $isNew = $entity->isNew();
-        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKeyField = $this->table()->getPrimaryKey();
         $primaryKey = $isNew ? null : $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
 
-        $source = $this->_table->getRegistryAlias();
+        $source = $this->table()->getRegistryAlias();
 
         // Check if user already has a pending draft
         /** @var \Bouncer\Model\Entity\BouncerRecord|null $existingDraft */
@@ -424,7 +424,7 @@ class BouncerBehavior extends Behavior
         if (!$isNew) {
             // For edits, store the current state as original
             /** @var \Cake\Datasource\EntityInterface $original */
-            $original = $this->_table->get($primaryKey);
+            $original = $this->table()->get($primaryKey);
             $originalData = $this->serializeEntity($original);
             // Capture modification timestamp for conflict detection
             $originalModified = $original->get('modified') ?? $original->get('created');
@@ -592,9 +592,9 @@ class BouncerBehavior extends Behavior
             return null;
         }
 
-        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKeyField = $this->table()->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
-        $source = $this->_table->getRegistryAlias();
+        $source = $this->table()->getRegistryAlias();
 
         // Check if user already has a pending draft for this record
         /** @var \Bouncer\Model\Entity\BouncerRecord|null $existingDraft */
@@ -831,7 +831,7 @@ class BouncerBehavior extends Behavior
         // Check bypass callback if configured
         $callback = $this->getConfig('bypassCallback');
         if ($callback !== null && is_callable($callback)) {
-            $result = $callback($entity, $options, $this->_table);
+            $result = $callback($entity, $options, $this->table());
             if ($result === true) {
                 return true;
             }
@@ -886,7 +886,7 @@ class BouncerBehavior extends Behavior
      */
     protected function removeRevertedDraft(EntityInterface $entity, string|int $userId): void
     {
-        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKeyField = $this->table()->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
 
         if (!$primaryKey) {
@@ -898,7 +898,7 @@ class BouncerBehavior extends Behavior
 
         /** @var \Bouncer\Model\Entity\BouncerRecord|null $existingDraft */
         $existingDraft = $bouncerTable->findPendingForRecord(
-            $this->_table->getRegistryAlias(),
+            $this->table()->getRegistryAlias(),
             $primaryKey,
             $userId,
         )->first();
@@ -927,7 +927,7 @@ class BouncerBehavior extends Behavior
 
         /** @var \Bouncer\Model\Entity\BouncerRecord|null $draft */
         $draft = $bouncerTable->findPendingForRecord(
-            $this->_table->getRegistryAlias(),
+            $this->table()->getRegistryAlias(),
             $primaryKey,
             $userId,
         )->first();
@@ -955,7 +955,7 @@ class BouncerBehavior extends Behavior
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
         return $bouncerTable->findPendingForRecord(
-            $this->_table->getRegistryAlias(),
+            $this->table()->getRegistryAlias(),
             $primaryKey,
             $userId,
         )->count() > 0;
@@ -979,7 +979,7 @@ class BouncerBehavior extends Behavior
      */
     public function withDraft(EntityInterface $entity, string|int $userId): ?BouncerRecord
     {
-        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKeyField = $this->table()->getPrimaryKey();
         $primaryKey = $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField);
 
         if (!$primaryKey) {
@@ -1002,12 +1002,12 @@ class BouncerBehavior extends Behavior
 
         // Include the primary key in draft data to signal to beforeMarshal
         // that this is an existing entity, not a new one
-        $primaryKeyField = $this->_table->getPrimaryKey();
+        $primaryKeyField = $this->table()->getPrimaryKey();
         if (is_string($primaryKeyField)) {
             $draftData[$primaryKeyField] = $primaryKey;
         }
 
-        $this->_table->patchEntity($entity, $draftData);
+        $this->table()->patchEntity($entity, $draftData);
 
         return $draft;
     }
@@ -1042,7 +1042,7 @@ class BouncerBehavior extends Behavior
             && $bouncerRecord->canDetectStaleness()
         ) {
             /** @var \Cake\Datasource\EntityInterface $currentRecord */
-            $currentRecord = $this->_table->get($bouncerRecord->primary_key);
+            $currentRecord = $this->table()->get($bouncerRecord->primary_key);
             $currentModified = $currentRecord->get('modified') ?? $currentRecord->get('created');
 
             if ($currentModified && $currentModified > $bouncerRecord->original_modified) {
@@ -1071,25 +1071,25 @@ class BouncerBehavior extends Behavior
         if (isset($data['_delete']) && $data['_delete']) {
             // This is a delete operation
             /** @var \Cake\Datasource\EntityInterface $entity */
-            $entity = $this->_table->get($bouncerRecord->primary_key);
+            $entity = $this->table()->get($bouncerRecord->primary_key);
             $options['bypassBouncer'] = true;
 
-            return $this->_table->delete($entity, $options);
+            return $this->table()->delete($entity, $options);
         }
 
         if ($bouncerRecord->isNewRecordProposal()) {
             // Create new entity
-            $entity = $this->_table->newEntity($data);
+            $entity = $this->table()->newEntity($data);
         } else {
             // Load and patch existing entity
             /** @var \Cake\Datasource\EntityInterface $entity */
-            $entity = $this->_table->get($bouncerRecord->primary_key);
-            $entity = $this->_table->patchEntity($entity, $data);
+            $entity = $this->table()->get($bouncerRecord->primary_key);
+            $entity = $this->table()->patchEntity($entity, $data);
         }
 
         // Bypass bouncer for this save
         $options['bypassBouncer'] = true;
 
-        return $this->_table->save($entity, $options);
+        return $this->table()->save($entity, $options);
     }
 }

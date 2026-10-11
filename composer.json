@@ -8,8 +8,8 @@
         "approval",
         "workflow",
         "moderation",
-		"admin-panel",
-		"standalone-ui",        
+        "admin-panel",
+        "standalone-ui",
         "draft",
         "bouncer"
     ],
@@ -23,18 +23,18 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
-        "cakephp/orm": "^5.0.0",
+        "php": ">=8.5",
+        "cakephp/orm": "^6.0@dev",
         "ext-json": "*",
         "sebastian/diff": "^6.0 || ^7.0 || ^8.0 || ^9.0"
     },
     "require-dev": {
-        "cakephp/cakephp": "^5.1.0",
-        "dereuromark/cakephp-i18n-lint": "^0.1.1",
-        "phpunit/phpunit": "^11.5.42 || ^12.4.0",
+        "cakephp/cakephp": "^6.0@dev",
+        "dereuromark/cakephp-i18n-lint": "dev-cake6",
+        "phpunit/phpunit": "^13.0",
         "php-collective/code-sniffer": "dev-master as 0.4.6",
-        "cakephp/migrations": "^4.0.0",
-        "dereuromark/cakephp-templating": "^0.2.7"
+        "cakephp/migrations": "dev-fix/6.x-cakephp-compatibility",
+        "dereuromark/cakephp-templating": "dev-cake6"
     },
     "suggest": {
         "dereuromark/cakephp-audit-stash": "Integrates seamlessly to provide complete audit trail of approval workflow",
@@ -71,5 +71,7 @@
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

@@ -200,7 +200,7 @@ public function dashboard()
 
     // findPending() is the canonical finder — equivalent to
     // ->find()->where(['status' => 'pending']) but reads cleaner.
-    $pendingCount = $bouncerTable->findPending()->count();
+    $pendingCount = $bouncerTable->find('pending')->count();
 
     $this->set(compact('pendingCount'));
 }
