@@ -63,6 +63,75 @@ class BouncerBehaviorTest extends TestCase
         parent::tearDown();
     }
 
+    public function testGuestRequiresOptInAndFlag(): void
+    {
+        foreach ([[['validateOnDraft' => false], ['bouncerGuest' => true]], [['allowGuests' => true, 'validateOnDraft' => false], []]] as [$config, $options]) {
+            if ($this->Articles->hasBehavior('Bouncer')) {
+                $this->Articles->removeBehavior('Bouncer');
+            }
+            $this->Articles->addBehavior('Bouncer.Bouncer', $config);
+            $article = $this->Articles->newEntity(['title' => 'Guest title', 'body' => 'Body']);
+            $this->assertFalse($this->Articles->save($article, $options));
+            $this->assertFalse($this->Articles->getBehavior('Bouncer')->wasBounced());
+            $this->assertSame(0, $this->BouncerRecords->find()->count());
+        }
+    }
+
+    public function testGuestProposalsStaySeparate(): void
+    {
+        $article = $this->Articles->newEntity(['title' => 'Original', 'body' => 'Body', 'user_id' => 1]);
+        $this->Articles->saveOrFail($article);
+        $this->Articles->addBehavior('Bouncer.Bouncer', ['allowGuests' => true, 'autoSupersede' => false]);
+
+        foreach (['First', 'Second'] as $title) {
+            $edit = $this->Articles->get($article->id);
+            $edit->title = $title;
+            $this->assertFalse($this->Articles->save($edit, [
+                'bouncerGuest' => true,
+                'bouncerContact' => 'guest@example.com',
+                'bouncerUserDisplay' => 'Visitor',
+                'bouncerNote' => 'Please review',
+            ]));
+        }
+
+        $records = $this->BouncerRecords->find()->orderBy(['id' => 'ASC'])->toArray();
+        $this->assertCount(2, $records);
+        foreach ($records as $record) {
+            $this->assertTrue($record->isGuest());
+            $this->assertSame('pending', $record->status);
+            $this->assertSame('guest@example.com', $record->contact);
+            $this->assertSame('Visitor', $record->user_display);
+            $this->assertSame('Please review', $record->note);
+        }
+    }
+
+    public function testGuestDoesNotSupersedeUserDraft(): void
+    {
+        $article = $this->Articles->newEntity(['title' => 'Original', 'body' => 'Body', 'user_id' => 1]);
+        $this->Articles->saveOrFail($article);
+        $this->Articles->addBehavior('Bouncer.Bouncer', ['allowGuests' => true]);
+
+        $edit = $this->Articles->get($article->id);
+        $edit->title = 'User edit';
+        $this->Articles->save($edit, ['bouncerUserId' => 1]);
+        $edit = $this->Articles->get($article->id);
+        $edit->title = 'Guest edit';
+        $this->Articles->save($edit, ['bouncerGuest' => true]);
+
+        $this->assertSame(2, $this->BouncerRecords->find()->where(['status' => 'pending'])->count());
+    }
+
+    public function testGuestDeleteProposal(): void
+    {
+        $article = $this->Articles->newEntity(['title' => 'Original', 'body' => 'Body', 'user_id' => 1]);
+        $this->Articles->saveOrFail($article);
+        $this->Articles->addBehavior('Bouncer.Bouncer', ['allowGuests' => true]);
+        $this->assertFalse($this->Articles->delete($article, ['bouncerGuest' => true]));
+        $record = $this->BouncerRecords->find()->firstOrFail();
+        $this->assertTrue($record->isGuest());
+        $this->assertTrue($record->isDeleteProposal());
+    }
+
     /**
      * Test that adding behavior works
      */
@@ -784,6 +853,25 @@ class BouncerBehaviorTest extends TestCase
         $data = $secondBouncerRecord->getData();
         $this->assertArrayHasKey('_delete', $data);
         $this->assertTrue($data['_delete']);
+    }
+
+    /**
+     * @return void
+     */
+    public function testDeleteResubmitUpdatesContact(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer', [
+            'requireApproval' => ['delete'],
+        ]);
+        $article = $this->Articles->newEntity(['title' => 'Test Article', 'body' => 'Test body', 'user_id' => 1]);
+        $this->Articles->saveOrFail($article, ['bypassBouncer' => true]);
+
+        $this->Articles->delete($this->Articles->get($article->id), ['bouncerUserId' => 1, 'bouncerContact' => 'old@example.com']);
+        $this->Articles->delete($this->Articles->get($article->id), ['bouncerUserId' => 1, 'bouncerContact' => 'new@example.com']);
+
+        $records = $this->BouncerRecords->find()->where(['primary_key' => $article->id, 'status' => 'pending'])->all()->toList();
+        $this->assertCount(1, $records);
+        $this->assertSame('new@example.com', $records[0]->contact);
     }
 
     /**

@@ -378,6 +378,13 @@ class BouncerHelperTest extends TestCase
         $this->assertStringContainsString($longString, $result);
     }
 
+    public function testFormatProposerGuest(): void
+    {
+        $this->assertSame('Guest', $this->helper->formatProposer(null));
+        $this->assertSame('Jane &amp; Co', $this->helper->formatProposer(null, 'Jane & Co'));
+        $this->assertSame($this->helper->formatUser(5, 'Bob'), $this->helper->formatProposer(5, 'Bob'));
+    }
+
     public function testFormatUserWithNull(): void
     {
         $result = $this->helper->formatUser(null);

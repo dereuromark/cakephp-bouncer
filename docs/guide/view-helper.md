@@ -87,6 +87,7 @@ difference between "readable" and "headache."
 | Method | Returns |
 |---|---|
 | `formatUser($userId, $displayName = null)` | display name, optionally linked via `Bouncer.linkUser` |
+| `formatProposer($userId, $displayName = null)` | like `formatUser()`, but a null user ID renders the display name or "Guest" |
 | `formatRecord($source, $primaryKey)` | record reference, optionally linked via `Bouncer.linkRecord` |
 
 Both honour the link configuration documented in

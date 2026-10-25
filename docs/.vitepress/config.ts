@@ -43,6 +43,7 @@ export default defineConfig({
             { text: 'Overview', link: '/features/' },
             { text: 'Admin UI', link: '/features/admin-ui' },
             { text: 'Approval Workflow', link: '/features/approval-workflow' },
+            { text: 'Public Contributions', link: '/features/public-contributions' },
             { text: '3-Way Merge', link: '/features/three-way-merge' },
             { text: 'Advanced Patterns', link: '/features/advanced-patterns' },
             { text: 'AuditStash Integration', link: '/features/audit-stash-integration' },

@@ -85,7 +85,7 @@
                                 <span class="badge bg-success">New</span>
                             <?php } ?>
                         </td>
-                        <td><?= $this->Bouncer->formatUser($bouncerRecord->user_id, $bouncerRecord->user_display) ?></td>
+                        <td><?= $this->Bouncer->formatProposer($bouncerRecord->user_id, $bouncerRecord->user_display) ?></td>
                         <td>
                             <?php
                             $statusClass = match ($bouncerRecord->status) {

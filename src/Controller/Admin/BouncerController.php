@@ -12,7 +12,6 @@ use Cake\Event\EventInterface;
 use Cake\Http\Exception\ForbiddenException;
 use Cake\Log\Log;
 use Closure;
-use DateTime;
 use Exception;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
@@ -473,42 +472,15 @@ class BouncerController extends AppController
             }
         }
 
-        $connection = $this->BouncerRecords->getConnection();
-
         try {
-            $connection->transactional(function () use ($bouncerRecord) {
-                // Apply the changes to the actual table
-                $sourceTable = $this->fetchTable($bouncerRecord->source);
-
-                // Add behavior if not already present
-                if (!$sourceTable->hasBehavior('Bouncer')) {
-                    $sourceTable->addBehavior('Bouncer.Bouncer');
-                }
-
-                /** @var \Bouncer\Model\Behavior\BouncerBehavior $behavior */
-                $behavior = $sourceTable->getBehavior('Bouncer');
-                $entity = $behavior->applyApprovedChanges($bouncerRecord);
-
-                if (!$entity) {
-                    throw new RuntimeException('Failed to apply changes to ' . $bouncerRecord->source);
-                }
-
-                $primaryKeyField = $sourceTable->getPrimaryKey();
-                $primaryKeyValue = is_object($entity) ? $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField) : null;
-
-                // Update bouncer record
-                $this->BouncerRecords->patchEntity($bouncerRecord, [
-                    'status' => 'approved',
-                    'reviewer_id' => $this->request->getAttribute('identity')?->getIdentifier(),
-                    'reviewed' => new DateTime(),
-                    'reason' => $this->request->getData('reason'),
-                    'primary_key' => $primaryKeyValue, // Set for new records
-                ]);
-
-                if (!$this->BouncerRecords->save($bouncerRecord)) {
-                    throw new RuntimeException('Failed to update bouncer record.');
-                }
-            });
+            $result = $this->BouncerRecords->approve(
+                $bouncerRecord,
+                $this->request->getAttribute('identity')?->getIdentifier(),
+                $this->request->getData('reason'),
+            );
+            if (!$result) {
+                throw new RuntimeException('Failed to apply changes to ' . $bouncerRecord->source);
+            }
 
             $this->Flash->success('Changes have been approved and published.');
         } catch (Exception $e) {
@@ -546,14 +518,13 @@ class BouncerController extends AppController
             return $this->redirect(['action' => 'view', $id]);
         }
 
-        $this->BouncerRecords->patchEntity($bouncerRecord, [
-            'status' => 'rejected',
-            'reviewer_id' => $this->request->getAttribute('identity')?->getIdentifier(),
-            'reviewed' => new DateTime(),
-            'reason' => $reason,
-        ]);
-
-        if ($this->BouncerRecords->save($bouncerRecord)) {
+        if (
+            $this->BouncerRecords->reject(
+                $bouncerRecord,
+                $this->request->getAttribute('identity')?->getIdentifier(),
+                $reason,
+            )
+        ) {
             $this->Flash->success('Changes have been rejected.');
         } else {
             $this->Flash->error('Failed to reject changes.');

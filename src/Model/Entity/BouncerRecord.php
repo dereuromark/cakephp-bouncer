@@ -14,8 +14,9 @@ use Cake\ORM\Entity;
  * @property int $id
  * @property string $source
  * @property int|string|null $primary_key
- * @property int|string $user_id
+ * @property int|string|null $user_id
  * @property string|null $user_display
+ * @property string|null $contact
  * @property int|string|null $reviewer_id
  * @property string|null $reviewer_display
  * @property string $status
@@ -40,6 +41,7 @@ class BouncerRecord extends Entity
         'primary_key' => true,
         'user_id' => true,
         'user_display' => true,
+        'contact' => true,
         'reviewer_id' => true,
         'reviewer_display' => true,
         'status' => true,
@@ -106,6 +108,11 @@ class BouncerRecord extends Entity
      *
      * @return bool
      */
+    public function isGuest(): bool
+    {
+        return $this->user_id === null;
+    }
+
     public function isPending(): bool
     {
         return $this->status === 'pending';

@@ -257,3 +257,8 @@ msgstr ""
 msgid "Server Time"
 msgstr ""
 
+msgid "Guest"
+msgstr ""
+
+msgid "Contact"
+msgstr ""

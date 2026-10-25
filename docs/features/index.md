@@ -20,6 +20,12 @@ staleness and merge state.
 
 → [Approval Workflow](./approval-workflow)
 
+## Public Contributions
+
+Accept guest proposals and review them from your own controller.
+
+→ [Public Contributions](./public-contributions)
+
 ## 3-Way Merge
 
 When a proposal becomes stale because the source record changed
