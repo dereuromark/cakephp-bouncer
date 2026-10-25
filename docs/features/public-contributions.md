@@ -1,5 +1,13 @@
 # Public contributions
 
+Bouncer captures dirty fields in `beforeSave`. If your table's `beforeSave`
+derives fields, such as country from city, attach Bouncer with priority 1 so
+the proposal contains only submitted fields:
+
+```php
+$this->Articles->addBehavior('Bouncer.Bouncer', ['priority' => 1]);
+```
+
 Attach Bouncer in the action that accepts a public proposal. Other actions can keep their normal save behavior. Validate the form and restrict which fields visitors may submit before saving.
 
 ```php

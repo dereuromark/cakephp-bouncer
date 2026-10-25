@@ -79,6 +79,9 @@ public function edit($id = null)
 `withDraft()` is the canonical helper — it does the `loadDraft + patchEntity`
 combination in one call. The lookup uses (source, primary key, user ID),
 so drafts from *other* users are not surfaced to the current user.
+Re-editing keeps the baseline from the first proposal for stale-record detection.
+Each save merges its changed fields into the pending draft. Setting a field back
+to its original value removes that field; reverting all fields removes the draft.
 
 If you need the BouncerRecord object without overlaying onto an existing
 entity, `loadDraft($primaryKey, $userId)` returns it directly. After a

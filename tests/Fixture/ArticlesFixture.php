@@ -20,6 +20,7 @@ class ArticlesFixture extends TestFixture
         'id' => ['type' => 'integer', 'length' => 10, 'unsigned' => true, 'null' => false, 'default' => null, 'autoIncrement' => true],
         'title' => ['type' => 'string', 'length' => 255, 'null' => false, 'default' => null],
         'body' => ['type' => 'text', 'null' => true, 'default' => null],
+        'event_at' => ['type' => 'datetime', 'null' => true, 'default' => null],
         'user_id' => ['type' => 'integer', 'length' => 10, 'unsigned' => true, 'null' => false, 'default' => null],
         'created' => ['type' => 'datetime', 'length' => null, 'null' => true, 'default' => null],
         'modified' => ['type' => 'datetime', 'length' => null, 'null' => true, 'default' => null],

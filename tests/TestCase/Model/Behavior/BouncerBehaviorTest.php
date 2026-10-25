@@ -7,6 +7,7 @@ namespace Bouncer\Test\TestCase\Model\Behavior;
 use Bouncer\Model\Behavior\BouncerBehavior;
 use Bouncer\Model\Entity\BouncerRecord;
 use Cake\Database\Connection;
+use Cake\I18n\DateTime;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\TestSuite\TestCase;
 use Throwable;
@@ -61,6 +62,78 @@ class BouncerBehaviorTest extends TestCase
         unset($this->Articles, $this->BouncerRecords);
 
         parent::tearDown();
+    }
+
+    public function testApprovalNormalizesDateTime(): void
+    {
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+        $article = $this->Articles->newEntity([
+            'title' => 'Event',
+            'body' => 'Body',
+            'user_id' => 1,
+            'event_at' => '2027-01-20 12:00:00',
+        ]);
+        $this->Articles->saveOrFail($article, ['bypassBouncer' => true]);
+
+        $edit = $this->Articles->get($article->id);
+        $edit->event_at = new DateTime('2027-01-23 15:30:00');
+        $this->Articles->save($edit, ['bouncerUserId' => 1]);
+        $draft = $this->BouncerRecords->find()->firstOrFail();
+        $this->assertStringContainsString('T', (string)$draft->data);
+
+        $this->BouncerRecords->approve($draft, 2);
+        $this->assertSame('2027-01-23 15:30:00', $this->Articles->get($article->id)->event_at->format('Y-m-d H:i:s'));
+    }
+
+    public function testReeditingKeepsOriginalBaseline(): void
+    {
+        $article = $this->Articles->newEntity(['title' => 'Original', 'body' => 'Body', 'user_id' => 1]);
+        $this->Articles->saveOrFail($article);
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+        $edit = $this->Articles->get($article->id);
+        $edit->title = 'Proposal';
+        $this->Articles->save($edit, ['bouncerUserId' => 1]);
+        $draft = $this->BouncerRecords->find()->firstOrFail();
+        $baseline = $draft->original_modified;
+
+        $live = $this->Articles->get($article->id);
+        $live->title = 'Live change';
+        $live->modified = new DateTime('+1 day');
+        $this->Articles->saveOrFail($live, ['bypassBouncer' => true]);
+
+        $edit = $this->Articles->get($article->id);
+        $this->Articles->getBehavior('Bouncer')->withDraft($edit, 1);
+        $edit->body = 'More detail';
+        $this->Articles->save($edit, ['bouncerUserId' => 1]);
+        $draft = $this->BouncerRecords->get($draft->id);
+        $this->assertSame('Original', $draft->getOriginalData()['title']);
+        $this->assertEquals($baseline, $draft->original_modified);
+        $this->assertTrue($draft->canDetectStaleness());
+        $this->assertGreaterThan($draft->original_modified, $this->Articles->get($article->id)->modified);
+    }
+
+    public function testDraftUpdatesMergeAndRemoveRevertedFields(): void
+    {
+        $article = $this->Articles->newEntity(['title' => 'Original', 'body' => 'Body', 'user_id' => 1]);
+        $this->Articles->saveOrFail($article);
+        $this->Articles->addBehavior('Bouncer.Bouncer');
+
+        foreach ([['title', 'Proposal'], ['body', 'More detail'], ['title', 'Original'], ['body', 'Body']] as [$field, $value]) {
+            $edit = $this->Articles->get($article->id);
+            $edit->set($field, $value);
+            $edit->setDirty($field, true);
+            $this->Articles->save($edit, ['bouncerUserId' => 1]);
+            $draft = $this->BouncerRecords->find()->where(['status' => 'pending'])->first();
+            if ($field === 'title' && $value === 'Proposal') {
+                $this->assertSame(['title' => 'Proposal'], $draft->getData());
+            } elseif ($field === 'body' && $value === 'More detail') {
+                $this->assertSame(['title' => 'Proposal', 'body' => 'More detail'], $draft->getData());
+            } elseif ($field === 'title') {
+                $this->assertSame(['body' => 'More detail'], $draft->getData());
+            }
+        }
+        $this->assertNull($draft);
+        $this->assertTrue($this->Articles->getBehavior('Bouncer')->wasDraftRemoved());
     }
 
     public function testGuestRequiresOptInAndFlag(): void
@@ -1035,6 +1108,7 @@ class BouncerBehaviorTest extends TestCase
 
         // Now edit again, reverting to original values
         $article = $this->Articles->get($articleId);
+        $this->Articles->getBehavior('Bouncer')->withDraft($article, 2);
         $article = $this->Articles->patchEntity($article, [
             'title' => 'Original Title',
             'body' => 'Original Body',
