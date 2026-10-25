@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace TestApp\Model\Table;
 
 use Cake\ORM\Table;
+use Cake\Validation\Validator;
 
 class ArticlesTable extends Table
 {
@@ -17,5 +18,10 @@ class ArticlesTable extends Table
         $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp');
+    }
+
+    public function validationDefault(Validator $validator): Validator
+    {
+        return $validator->dateTime('event_at')->allowEmptyDateTime('event_at');
     }
 }

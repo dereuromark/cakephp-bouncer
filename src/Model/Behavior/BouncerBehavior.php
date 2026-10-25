@@ -7,12 +7,16 @@ namespace Bouncer\Model\Behavior;
 use ArrayObject;
 use Bouncer\Lib\ThreeWayMerge;
 use Bouncer\Model\Entity\BouncerRecord;
+use Cake\Chronos\Chronos;
+use Cake\Chronos\ChronosDate;
 use Cake\Database\Connection;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\Log\Log;
 use Cake\ORM\Behavior;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use DateTimeImmutable;
+use Exception;
 use ReflectionObject;
 use RuntimeException;
 use Throwable;
@@ -459,9 +463,10 @@ class BouncerBehavior extends Behavior
                 $bouncerRecord = $bouncerTable->newEntity($bouncerData);
                 $bouncerRecord = $bouncerTable->save($bouncerRecord, ['atomic' => false]);
             } else {
-                // Check if the new data matches the original data (effectively reverted)
                 $proposedData = json_decode($data, true) ?: [];
-                $originalDataArray = json_decode($originalData ?? '{}', true) ?: [];
+                $proposedData = array_replace($existingData, $proposedData);
+                $baselineData = $existingDraft->get('original_data') ?: $originalData;
+                $originalDataArray = json_decode((string)$baselineData ?: '{}', true) ?: [];
 
                 // Compare only the fields that are in the proposed data.
                 // Both sides are normalized to string before strict comparison
@@ -469,17 +474,14 @@ class BouncerBehavior extends Behavior
                 // doesn't read as "changed". Loose `!=` here used to coerce
                 // `'0' == false` and similar nulls — that misclassified real
                 // user edits as reverts and silently dropped the draft.
-                $isReverted = true;
                 foreach ($proposedData as $field => $value) {
                     $originalValue = $originalDataArray[$field] ?? null;
-                    if ($this->normalizeForCompare($originalValue) !== $this->normalizeForCompare($value)) {
-                        $isReverted = false;
-
-                        break;
+                    if ($this->normalizeForCompare($originalValue) === $this->normalizeForCompare($value)) {
+                        unset($proposedData[$field]);
                     }
                 }
 
-                if ($isReverted && count($proposedData) > 0) {
+                if (!$proposedData) {
                     // Changes reverted to original - delete the pending draft
                     $bouncerTable->delete($existingDraft);
                     $this->draftRemoved = true;
@@ -492,16 +494,18 @@ class BouncerBehavior extends Behavior
                 } else {
                     // Update existing edit draft
                     $patchData = [
-                        'data' => $data,
-                        'original_data' => $originalData,
+                        'data' => json_encode($proposedData, self::JSON_FLAGS),
                     ];
+                    if (!$existingDraft->get('original_data')) {
+                        $patchData['original_data'] = $originalData;
+                    }
                     if ($note !== null) {
                         $patchData['note'] = $note;
                     }
                     if ($contact !== null) {
                         $patchData['contact'] = $contact;
                     }
-                    if ($originalModified !== null) {
+                    if (!$existingDraft->get('original_data') && $originalModified !== null) {
                         $patchData['original_modified'] = $originalModified;
                     }
                     $bouncerTable->patchEntity($existingDraft, $patchData);
@@ -1103,6 +1107,8 @@ class BouncerBehavior extends Behavior
             return $this->_table->delete($entity, $options);
         }
 
+        $data = $this->normalizeDateFields($data);
+
         if ($bouncerRecord->isNewRecordProposal()) {
             // Create new entity
             $entity = $this->_table->newEntity($data);
@@ -1117,5 +1123,36 @@ class BouncerBehavior extends Behavior
         $options['bypassBouncer'] = true;
 
         return $this->_table->save($entity, $options);
+    }
+
+    /**
+     * @param array<string, mixed> $data Proposal data
+     *
+     * @return array<string, mixed>
+     */
+    protected function normalizeDateFields(array $data): array
+    {
+        $schema = $this->_table->getSchema();
+        foreach ($data as $field => $value) {
+            if (!is_string($value) || !$schema->hasColumn($field)) {
+                continue;
+            }
+
+            $type = $schema->getColumnType($field);
+            try {
+                if (in_array($type, ['datetime', 'datetimefractional', 'timestamp', 'timestampfractional', 'timestamptimezone'], true)) {
+                    // An object keeps the exact instant (offset, microseconds) for the marshaller and validation.
+                    $data[$field] = new Chronos($value);
+                } elseif ($type === 'date') {
+                    $data[$field] = new ChronosDate((new DateTimeImmutable($value))->format('Y-m-d'));
+                } elseif ($type === 'time') {
+                    $data[$field] = (new DateTimeImmutable($value))->format('H:i:s');
+                }
+            } catch (Exception) {
+                // Keep values that cannot be parsed for normal validation.
+            }
+        }
+
+        return $data;
     }
 }
