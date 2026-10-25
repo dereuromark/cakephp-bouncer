@@ -208,3 +208,9 @@ if ($entity) {
 Wrap both saves in a transaction (the admin controller does — see the
 [advanced patterns page](/features/advanced-patterns#custom-approval-flow)
 for a full transactional version).
+
+## Guest save options and review methods
+
+Enable `allowGuests` on the behavior, then pass `bouncerGuest => true` to the save or delete. `bouncerContact` stores an optional contact string of up to 255 characters; `bouncerUserDisplay` and `bouncerNote` store a display name and proposer note. See [Public contributions](../features/public-contributions.md) for a controller example.
+
+A reviewer controller can call `BouncerRecordsTable::approve($record, $reviewerId, $reason, $options)` or `reject($record, $reviewerId, $reason)` after checking access. The approval options pass through to `applyApprovedChanges()`. Rejection requires a nonblank reason. Both methods refuse records that are no longer pending.

@@ -50,6 +50,7 @@ class BouncerBehavior extends Behavior
         'exemptUsers' => [],
         'bypassCallback' => null,
         'validateOnDraft' => true,
+        'allowGuests' => false,
         'autoSupersede' => true,
         'cleanupOnDelete' => true,
     ];
@@ -243,7 +244,7 @@ class BouncerBehavior extends Behavior
         }
 
         // If editing but no dirty fields, check if we should remove an existing pending draft
-        if (!$isNew && !$entity->isDirty()) {
+        if (!$isNew && !$entity->isDirty() && !$this->isGuestProposal($options)) {
             $userId = $options['bouncerUserId'] ?? null;
             if ($userId) {
                 $this->removeRevertedDraft($entity, $userId);
@@ -397,7 +398,7 @@ class BouncerBehavior extends Behavior
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
         $userId = $this->getUserId($entity, $options);
-        if (!$userId) {
+        if (!$userId && !$this->isGuestProposal($options)) {
             $this->bouncerFailed = true;
 
             return null;
@@ -411,11 +412,11 @@ class BouncerBehavior extends Behavior
 
         // Check if user already has a pending draft
         /** @var \Bouncer\Model\Entity\BouncerRecord|null $existingDraft */
-        $existingDraft = $bouncerTable->findPendingForRecord(
+        $existingDraft = $userId ? $bouncerTable->findPendingForRecord(
             $source,
             $primaryKey,
             $userId,
-        )->first();
+        )->first() : null;
 
         $data = $this->serializeEntity($entity);
         $originalData = null;
@@ -432,6 +433,7 @@ class BouncerBehavior extends Behavior
 
         $note = $this->getNote($options);
         $userDisplay = $this->getUserDisplay($options);
+        $contact = $options['bouncerContact'] ?? null;
 
         if ($existingDraft) {
             // Check if existing draft is a delete (different type)
@@ -445,6 +447,7 @@ class BouncerBehavior extends Behavior
                     'primary_key' => $primaryKey,
                     'user_id' => $userId,
                     'user_display' => $userDisplay,
+                    'contact' => $contact,
                     'status' => 'pending',
                     'data' => $data,
                     'original_data' => $originalData,
@@ -495,6 +498,9 @@ class BouncerBehavior extends Behavior
                     if ($note !== null) {
                         $patchData['note'] = $note;
                     }
+                    if ($contact !== null) {
+                        $patchData['contact'] = $contact;
+                    }
                     if ($originalModified !== null) {
                         $patchData['original_modified'] = $originalModified;
                     }
@@ -505,7 +511,7 @@ class BouncerBehavior extends Behavior
         } else {
             // Check if the new data matches the original data (effectively no change needed)
             // Only applies to edits, not adds
-            if (!$entity->isNew() && $originalData) {
+            if ($userId && !$entity->isNew() && $originalData) {
                 $proposedData = json_decode($data, true) ?: [];
                 $originalDataArray = json_decode($originalData, true) ?: [];
 
@@ -532,6 +538,7 @@ class BouncerBehavior extends Behavior
                 'primary_key' => $primaryKey,
                 'user_id' => $userId,
                 'user_display' => $userDisplay,
+                'contact' => $contact,
                 'status' => 'pending',
                 'data' => $data,
                 'original_data' => $originalData,
@@ -554,7 +561,8 @@ class BouncerBehavior extends Behavior
         }
 
         // Supersede other pending drafts if configured
-        if ($this->getConfig('autoSupersede')) {
+        // A guest must never be able to supersede someone else's pending work.
+        if ($this->getConfig('autoSupersede') && !$this->isGuestProposal($options)) {
             $bouncerTable->supersedeOthers(
                 $source,
                 $primaryKey,
@@ -586,7 +594,7 @@ class BouncerBehavior extends Behavior
         $bouncerTable = $this->fetchTable('Bouncer.BouncerRecords');
 
         $userId = $this->getUserId($entity, $options);
-        if (!$userId) {
+        if (!$userId && !$this->isGuestProposal($options)) {
             $this->bouncerFailed = true;
 
             return null;
@@ -598,17 +606,18 @@ class BouncerBehavior extends Behavior
 
         // Check if user already has a pending draft for this record
         /** @var \Bouncer\Model\Entity\BouncerRecord|null $existingDraft */
-        $existingDraft = $bouncerTable->findPendingForRecord(
+        $existingDraft = $userId ? $bouncerTable->findPendingForRecord(
             $source,
             $primaryKey,
             $userId,
-        )->first();
+        )->first() : null;
 
         // Store current entity state as original_data
         $originalData = json_encode($entity->toArray(), self::JSON_FLAGS);
         $data = json_encode(['_delete' => true], self::JSON_FLAGS); // Mark as deletion
         $note = $this->getNote($options);
         $userDisplay = $this->getUserDisplay($options);
+        $contact = $options['bouncerContact'] ?? null;
         // Capture modification timestamp for conflict detection
         $originalModified = $entity->get('modified') ?? $entity->get('created');
 
@@ -626,6 +635,9 @@ class BouncerBehavior extends Behavior
                 if ($note !== null) {
                     $patchData['note'] = $note;
                 }
+                if ($contact !== null) {
+                    $patchData['contact'] = $contact;
+                }
                 if ($originalModified !== null) {
                     $patchData['original_modified'] = $originalModified;
                 }
@@ -638,6 +650,7 @@ class BouncerBehavior extends Behavior
                     'primary_key' => $primaryKey,
                     'user_id' => $userId,
                     'user_display' => $userDisplay,
+                    'contact' => $contact,
                     'status' => 'pending',
                     'data' => $data,
                     'original_data' => $originalData,
@@ -656,6 +669,7 @@ class BouncerBehavior extends Behavior
                 'primary_key' => $primaryKey,
                 'user_id' => $userId,
                 'user_display' => $userDisplay,
+                'contact' => $contact,
                 'status' => 'pending',
                 'data' => $data,
                 'original_data' => $originalData,
@@ -675,7 +689,7 @@ class BouncerBehavior extends Behavior
         }
 
         // Supersede other pending drafts if configured
-        if ($this->getConfig('autoSupersede')) {
+        if ($this->getConfig('autoSupersede') && !$this->isGuestProposal($options)) {
             $bouncerTable->supersedeOthers(
                 $source,
                 $primaryKey,
@@ -727,6 +741,14 @@ class BouncerBehavior extends Behavior
     }
 
     /**
+     * @param \ArrayObject $options Save or delete options
+     */
+    protected function isGuestProposal(ArrayObject $options): bool
+    {
+        return $this->getConfig('allowGuests') && ($options['bouncerGuest'] ?? false) === true;
+    }
+
+    /**
      * Get user ID from entity or options.
      *
      * Supports both integer and string (UUID) user IDs.
@@ -739,6 +761,10 @@ class BouncerBehavior extends Behavior
      */
     protected function getUserId(EntityInterface $entity, ArrayObject $options): string|int|null
     {
+        if (($options['bouncerGuest'] ?? false) === true) {
+            return null;
+        }
+
         $userField = $this->getConfig('userField');
 
         // Check options first

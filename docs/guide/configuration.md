@@ -27,6 +27,9 @@ $this->addBehavior('Bouncer.Bouncer', [
     // Set false to defer validation until approval.
     'validateOnDraft' => true,
 
+    // Permit explicitly flagged guest proposals (default: false).
+    'allowGuests' => false,
+
     // When a new proposal is stored, mark other pending proposals
     // for its source and primary key as 'superseded' (default: true).
     'autoSupersede' => true,
@@ -56,6 +59,10 @@ is usually what the user wants.
 `false` accepts any payload into the draft and only runs validation when
 the admin approves. Use this when proposals are partial / WIP and you
 don't want users blocked on incomplete data.
+
+### `allowGuests`
+
+With `allowGuests => true`, a save or delete with `bouncerGuest => true` can create a proposal without a user ID. Each guest proposal gets a new pending row with a null `user_id`. Without the flag, a missing user ID still blocks the operation. The flag also blocks a save when `allowGuests` is disabled.
 
 ### `autoSupersede`
 

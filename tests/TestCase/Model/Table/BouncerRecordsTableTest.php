@@ -21,6 +21,7 @@ class BouncerRecordsTableTest extends TestCase
      */
     protected array $fixtures = [
         'plugin.Bouncer.BouncerRecords',
+        'plugin.Bouncer.Articles',
     ];
 
     /**
@@ -50,6 +51,65 @@ class BouncerRecordsTableTest extends TestCase
         unset($this->BouncerRecords);
 
         parent::tearDown();
+    }
+
+    public function testApproveAndReject(): void
+    {
+        $proposal = $this->BouncerRecords->newEntity([
+            'source' => 'TestApp.Articles',
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => json_encode(['title' => 'Approved title', 'body' => 'Body', 'user_id' => 1]),
+        ]);
+        $this->BouncerRecords->saveOrFail($proposal);
+        $result = $this->BouncerRecords->approve($proposal, 12, 'Looks good');
+        $this->assertNotFalse($result);
+        $this->assertSame('Approved title', $result->get('title'));
+        $this->assertSame('approved', $proposal->status);
+        $this->assertEquals(12, $proposal->reviewer_id);
+        $this->assertFalse($this->BouncerRecords->approve($proposal, 12));
+        $this->assertFalse($this->BouncerRecords->reject($proposal, 12, 'Later'));
+
+        $other = $this->BouncerRecords->newEntity([
+            'source' => 'TestApp.Articles',
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => '{}',
+        ]);
+        $this->BouncerRecords->saveOrFail($other);
+        $this->assertFalse($this->BouncerRecords->reject($other, 12, '  '));
+        $this->assertTrue($this->BouncerRecords->reject($other, 12, ' No '));
+        $this->assertSame('No', $other->reason);
+        $this->assertSame('rejected', $other->status);
+    }
+
+    public function testApproveDelete(): void
+    {
+        $articles = $this->fetchTable('TestApp.Articles');
+        $article = $articles->newEntity(['title' => 'Delete me', 'body' => 'Body', 'user_id' => 1]);
+        $articles->saveOrFail($article);
+        $proposal = $this->BouncerRecords->newEntity([
+            'source' => 'TestApp.Articles',
+            'primary_key' => $article->id,
+            'user_id' => 1,
+            'status' => 'pending',
+            'data' => '{"_delete":true}',
+        ]);
+        $this->BouncerRecords->saveOrFail($proposal);
+        $other = $this->BouncerRecords->newEntity([
+            'source' => 'TestApp.Articles',
+            'primary_key' => $article->id,
+            'user_id' => null,
+            'status' => 'pending',
+            'data' => '{"title":"Too late"}',
+        ]);
+        $this->BouncerRecords->saveOrFail($other);
+
+        $this->assertTrue($this->BouncerRecords->approve($proposal, 12));
+
+        $this->assertSame('approved', $this->BouncerRecords->get($proposal->id)->status);
+        $this->assertSame(0, $articles->find()->count());
+        $this->assertFalse($this->BouncerRecords->exists(['id' => $other->id]));
     }
 
     /**

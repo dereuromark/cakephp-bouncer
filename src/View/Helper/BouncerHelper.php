@@ -544,6 +544,23 @@ JS;
     }
 
     /**
+     * Format the proposer of a record. A null user ID is a guest proposal.
+     *
+     * @param string|int|null $userId User identifier
+     * @param string|null $displayName Optional display name (from user_display column)
+     *
+     * @return string HTML output
+     */
+    public function formatProposer(string|int|null $userId, ?string $displayName = null): string
+    {
+        if ($userId === null) {
+            return h($displayName ?: __d('bouncer', 'Guest'));
+        }
+
+        return $this->formatUser($userId, $displayName);
+    }
+
+    /**
      * Format user for display, optionally linking to user record.
      *
      * Configure linking via `Bouncer.linkUser`:

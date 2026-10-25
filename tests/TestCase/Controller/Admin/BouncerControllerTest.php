@@ -317,6 +317,25 @@ class BouncerControllerTest extends TestCase
         $this->assertResponseOk();
     }
 
+    public function testGuestAppearsInIndexAndView(): void
+    {
+        $record = $this->BouncerRecords->newEntity([
+            'source' => 'Articles',
+            'user_id' => null,
+            'status' => 'pending',
+            'data' => '{}',
+            'contact' => 'guest@example.com',
+        ]);
+        $this->BouncerRecords->saveOrFail($record);
+
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'index']);
+        $this->assertResponseContains('Guest');
+
+        $this->get(['plugin' => 'Bouncer', 'prefix' => 'Admin', 'controller' => 'Bouncer', 'action' => 'view', $record->id]);
+        $this->assertResponseContains('Guest');
+        $this->assertResponseContains('guest@example.com');
+    }
+
     /**
      * Test index with status filter
      *

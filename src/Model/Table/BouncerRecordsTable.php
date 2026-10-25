@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Bouncer\Model\Table;
 
+use Bouncer\Model\Entity\BouncerRecord;
+use Cake\Datasource\EntityInterface;
+use Cake\I18n\DateTime;
+use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\Query\SelectQuery;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
+use RuntimeException;
 
 /**
  * BouncerRecords Model
@@ -30,6 +35,8 @@ use Cake\Validation\Validator;
  */
 class BouncerRecordsTable extends Table
 {
+    use LocatorAwareTrait;
+
     /**
      * Initialize method
      *
@@ -72,7 +79,7 @@ class BouncerRecordsTable extends Table
 
         $validator
             ->requirePresence('user_id', 'create')
-            ->notEmptyString('user_id');
+            ->allowEmptyString('user_id');
 
         $validator
             ->allowEmptyString('reviewer_id');
@@ -99,6 +106,11 @@ class BouncerRecordsTable extends Table
             ->allowEmptyString('note');
 
         $validator
+            ->scalar('contact')
+            ->maxLength('contact', 255)
+            ->allowEmptyString('contact');
+
+        $validator
             ->scalar('reason')
             ->allowEmptyString('reason');
 
@@ -120,6 +132,87 @@ class BouncerRecordsTable extends Table
     public function buildRules(RulesChecker $rules): RulesChecker
     {
         return $rules;
+    }
+
+    /**
+     * Apply a pending proposal and record the review in one transaction.
+     *
+     * @param \Bouncer\Model\Entity\BouncerRecord $record Pending proposal
+     * @param string|int|null $reviewerId Reviewer ID
+     * @param string|null $reason Approval note
+     * @param array<string, mixed> $options Options passed to the source behavior
+     */
+    public function approve(BouncerRecord $record, string|int|null $reviewerId = null, ?string $reason = null, array $options = []): EntityInterface|bool
+    {
+        if (!$record->isPending()) {
+            return false;
+        }
+
+        return $this->getConnection()->transactional(function () use ($record, $reviewerId, $reason, $options) {
+            $sourceTable = $this->fetchTable($record->source);
+            if (!$sourceTable->hasBehavior('Bouncer')) {
+                $sourceTable->addBehavior('Bouncer.Bouncer');
+            }
+
+            /** @var \Bouncer\Model\Behavior\BouncerBehavior $behavior */
+            $behavior = $sourceTable->getBehavior('Bouncer');
+            $cleanupOnDelete = $behavior->getConfig('cleanupOnDelete');
+            if ($record->isDeleteProposal()) {
+                $behavior->setConfig('cleanupOnDelete', false);
+            }
+            try {
+                $entity = $behavior->applyApprovedChanges($record, $options);
+            } finally {
+                $behavior->setConfig('cleanupOnDelete', $cleanupOnDelete);
+            }
+            if (!$entity) {
+                throw new RuntimeException('Failed to apply changes to ' . $record->source);
+            }
+
+            $primaryKeyField = $sourceTable->getPrimaryKey();
+            $primaryKey = $entity instanceof EntityInterface
+                ? $entity->get(is_array($primaryKeyField) ? $primaryKeyField[0] : $primaryKeyField)
+                : $record->primary_key;
+            $this->patchEntity($record, [
+                'status' => 'approved',
+                'reviewer_id' => $reviewerId,
+                'reviewed' => new DateTime(),
+                'reason' => $reason,
+                'primary_key' => $primaryKey,
+            ]);
+            if (!$this->save($record)) {
+                throw new RuntimeException('Failed to update bouncer record.');
+            }
+            if ($record->isDeleteProposal() && $cleanupOnDelete) {
+                $this->deleteAll([
+                    'source' => $record->source,
+                    'primary_key IS' => $record->primary_key,
+                    'id !=' => $record->id,
+                ]);
+            }
+
+            return $entity;
+        });
+    }
+
+    /**
+     * Reject a pending proposal with a required reason.
+     */
+    public function reject(BouncerRecord $record, string|int|null $reviewerId, string $reason): bool
+    {
+        $reason = trim($reason);
+        if (!$record->isPending() || $reason === '') {
+            return false;
+        }
+
+        $this->patchEntity($record, [
+            'status' => 'rejected',
+            'reviewer_id' => $reviewerId,
+            'reviewed' => new DateTime(),
+            'reason' => $reason,
+        ]);
+
+        return (bool)$this->save($record);
     }
 
     /**
