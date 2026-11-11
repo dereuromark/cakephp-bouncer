@@ -72,6 +72,11 @@ difference between "readable" and "headache."
 | `diffToggleButtons()` | inline/side-by-side toggle buttons |
 | `diffToggleScript()` | `<script>` for the toggle buttons |
 
+Under a nonce-based CSP, `diffStyles()` adds the `cspStyleNonce` request
+attribute and `diffToggleScript()` adds `cspScriptNonce`, both set by CakePHP's
+`CspMiddleware`. Scripts fall back to `cspNonce` for custom middleware. The
+admin templates do the same.
+
 ### Tables and badges
 
 | Method | Returns |
