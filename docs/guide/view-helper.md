@@ -74,7 +74,7 @@ difference between "readable" and "headache."
 
 Under a nonce-based CSP, `diffStyles()` adds the `cspStyleNonce` request
 attribute and `diffToggleScript()` adds `cspScriptNonce`, both set by CakePHP's
-`CspMiddleware`. Scripts fall back to `cspNonce` for custom middleware. The
+`CspMiddleware` when its `scriptNonce` / `styleNonce` options are enabled. Scripts fall back to `cspNonce` for custom middleware. The
 admin templates do the same.
 
 ### Tables and badges
