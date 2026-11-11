@@ -7,6 +7,7 @@ namespace Bouncer\Test\TestCase\View\Helper;
 use Bouncer\Model\Entity\BouncerRecord;
 use Bouncer\View\Helper\BouncerHelper;
 use Cake\Core\Configure;
+use Cake\Http\ServerRequest;
 use Cake\ORM\Entity;
 use Cake\TestSuite\TestCase;
 use Cake\View\View;
@@ -503,5 +504,29 @@ class BouncerHelperTest extends TestCase
         $this->assertStringContainsString('href="/records/Articles/77"', $result);
 
         Configure::delete('Bouncer.linkRecord');
+    }
+
+    /**
+     * @return void
+     */
+    public function testDiffStylesAndToggleScriptUseCspNonces(): void
+    {
+        $request = (new ServerRequest())
+            ->withAttribute('cspScriptNonce', 'script-nonce')
+            ->withAttribute('cspStyleNonce', 'style-nonce');
+        $helper = new BouncerHelper(new View($request));
+
+        $this->assertStringStartsWith('<style nonce="style-nonce">', $helper->diffStyles());
+        $this->assertStringStartsWith('<script nonce="script-nonce">', $helper->diffToggleScript());
+    }
+
+    /**
+     * @return void
+     */
+    public function testDiffToggleScriptFallsBackToCspNonce(): void
+    {
+        $helper = new BouncerHelper(new View((new ServerRequest())->withAttribute('cspNonce', 'custom-nonce')));
+
+        $this->assertStringStartsWith('<script nonce="custom-nonce">', $helper->diffToggleScript());
     }
 }
