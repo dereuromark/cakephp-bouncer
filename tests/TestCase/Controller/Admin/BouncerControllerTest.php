@@ -356,7 +356,7 @@ class BouncerControllerTest extends TestCase
         $this->assertResponseContains('<script nonce="script-nonce" src="https://cdn.jsdelivr.net/npm/bootstrap');
         $this->assertTagsHaveNonce('script', 'script-nonce');
         $this->assertTagsHaveNonce('style', 'style-nonce');
-        $this->assertTagsHaveNonce('link', 'style-nonce', '/\brel="stylesheet"/');
+        $this->assertTagsHaveNonce('link', 'style-nonce', '/\brel=["\'][^"\']*\bstylesheet\b/i');
     }
 
     /**
