@@ -354,9 +354,9 @@ class BouncerControllerTest extends TestCase
 
         $this->assertResponseOk();
         $this->assertResponseContains('<script nonce="script-nonce" src="https://cdn.jsdelivr.net/npm/bootstrap');
-        $this->assertResponseNotRegExp('/<script(?![^>]*nonce=)/');
-        $this->assertResponseNotRegExp('/<style(?![^>]*nonce=)/');
-        $this->assertResponseNotRegExp('/<link(?![^>]*nonce=)[^>]*stylesheet/');
+        $this->assertTagsHaveNonce('script', 'script-nonce');
+        $this->assertTagsHaveNonce('style', 'style-nonce');
+        $this->assertTagsHaveNonce('link', 'style-nonce', '/\brel=["\'][^"\']*\bstylesheet\b/i');
     }
 
     /**
@@ -371,7 +371,7 @@ class BouncerControllerTest extends TestCase
         $this->get(['prefix' => 'Admin', 'plugin' => 'Bouncer', 'controller' => 'Bouncer', 'action' => 'index']);
 
         $this->assertResponseOk();
-        $this->assertResponseNotRegExp('/<script(?![^>]*nonce="custom-nonce")/');
+        $this->assertTagsHaveNonce('script', 'custom-nonce');
     }
 
     /**
@@ -1597,6 +1597,24 @@ class BouncerControllerTest extends TestCase
         }
 
         $this->assertRedirect('/login');
+    }
+
+    /**
+     * @param string $tag
+     * @param string $nonce
+     * @param string|null $filter Only check tags matching this pattern.
+     *
+     * @return void
+     */
+    protected function assertTagsHaveNonce(string $tag, string $nonce, ?string $filter = null): void
+    {
+        preg_match_all('/<' . $tag . '\b[^>]*>/i', (string)$this->_response->getBody(), $matches);
+        $tags = $filter ? preg_grep($filter, $matches[0]) : $matches[0];
+
+        $this->assertNotEmpty($tags, 'No <' . $tag . '> tags found.');
+        foreach ($tags as $html) {
+            $this->assertMatchesRegularExpression('/\snonce="' . preg_quote($nonce, '/') . '"/', $html, 'Wrong or missing nonce: ' . $html);
+        }
     }
 
     /**
